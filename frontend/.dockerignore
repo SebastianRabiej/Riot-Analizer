@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-ssr/
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+.idea/
+# stray Vite temp files from interrupted dev runs
+vite.config.ts.timestamp-*.mjs
+*.tsbuildinfo

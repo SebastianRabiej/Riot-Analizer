@@ -12,3 +12,7 @@
 .vscode/
 *.swp
 .DS_Store
+
+# Stray Vite temp files from interrupted dev runs
+**/vite.config.ts.timestamp-*.mjs
+**/*.tsbuildinfo

@@ -43,6 +43,11 @@ services:
     build: ./frontend
     depends_on:
       - backend
+    environment:
+      # Local values for the templated nginx (Railway overrides these).
+      PORT: "80"
+      BACKEND_URL: http://backend:8080
+      BACKEND_HOST: backend
     # Frontend is published on a fixed host port. Open http://localhost:50398
     ports:
       - "50398:80"

@@ -15,12 +15,26 @@ RUN npm run build
 # ---- Stage 2: serve with nginx ----
 FROM nginx:alpine
 
-# Custom config: SPA fallback + reverse proxy for /api and /actuator.
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The nginx image renders /etc/nginx/templates/*.template -> /etc/nginx/conf.d/
+# at container start (via envsubst). Restrict substitution to our own vars so
+# nginx's built-in $variables (e.g. $host, $uri) survive untouched.
+ENV NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_URL|BACKEND_HOST)$"
+
+# Defaults let `docker compose` work with no extra config. On Railway these are
+# overridden: PORT is auto-injected, BACKEND_URL/BACKEND_HOST point at the
+# backend service's public domain.
+ENV PORT=80
+ENV BACKEND_URL=http://backend:8080
+ENV BACKEND_HOST=backend
+
+# Config template (SPA fallback + reverse proxy for /api and /actuator).
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 # Static build output.
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Documentation only; Railway routes to whatever port the app listens on ($PORT).
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Inherit the base image's ENTRYPOINT (runs envsubst on templates) and its
+# default CMD ["nginx", "-g", "daemon off;"].
