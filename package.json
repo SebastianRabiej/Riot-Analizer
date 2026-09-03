@@ -1,0 +1,10 @@
+{
+  "name": "riot-analizer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Root manifest for Railway Infrastructure-as-Code (.railway/railway.ts).",
+  "type": "module",
+  "dependencies": {
+    "railway": "^3.11.0"
+  }
+}
