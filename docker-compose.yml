@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-riotanalizer}
+      POSTGRES_USER: ${POSTGRES_USER:-riot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-riot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-riot} -d ${POSTGRES_DB:-riotanalizer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-riotanalizer}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-riot}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-riot}
+      RIOT_API_KEY: ${RIOT_API_KEY:?RIOT_API_KEY is required - set it in .env (see .env.example) or export it in your shell}
+      RIOT_CURRENT_SEASON_START_EPOCH_MS: ${RIOT_CURRENT_SEASON_START_EPOCH_MS:-1736380800000}
+      RIOT_INITIAL_PLAYER: ${RIOT_INITIAL_PLAYER:-}
+      RIOT_FETCH_INTERVAL_MS: ${RIOT_FETCH_INTERVAL_MS:-600000}
+      RIOT_FETCH_BATCH_SIZE: ${RIOT_FETCH_BATCH_SIZE:-25}
+      RIOT_MATCH_PAGE_SIZE: ${RIOT_MATCH_PAGE_SIZE:-100}
+      RIOT_MAX_HISTORY_MATCHES: ${RIOT_MAX_HISTORY_MATCHES:-2000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # Backend is internal-only: the frontend nginx proxies to it by service name.
+    # Publish the container port with NO host port so Docker assigns a random
+    # host port (handy for debugging; not required for normal operation).
+    ports:
+      - "8080"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    # Frontend is published on a fixed host port. Open http://localhost:50398
+    ports:
+      - "50398:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

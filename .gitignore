@@ -1,0 +1,14 @@
+# Environment / secrets
+.env
+
+# Build outputs
+**/target/
+**/node_modules/
+**/dist/
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
