@@ -38,7 +38,7 @@ riot:
   api-key: ${RIOT_API_KEY:}
   platform-host: ${RIOT_PLATFORM_HOST:https://eun1.api.riotgames.com}
   regional-host: ${RIOT_REGIONAL_HOST:https://europe.api.riotgames.com}
-  current-season-start-epoch-ms: ${RIOT_CURRENT_SEASON_START_EPOCH_MS:1736380800000}
+  current-season-start-epoch-ms: ${RIOT_CURRENT_SEASON_START_EPOCH_MS:1767225600000}
   fetch-interval-ms: ${RIOT_FETCH_INTERVAL_MS:600000}
   initial-player: ${RIOT_INITIAL_PLAYER:}
   match-page-size: ${RIOT_MATCH_PAGE_SIZE:100}
