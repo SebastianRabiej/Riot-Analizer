@@ -18,7 +18,7 @@ FROM nginx:alpine
 # The nginx image renders /etc/nginx/templates/*.template -> /etc/nginx/conf.d/
 # at container start (via envsubst). Restrict substitution to our own vars so
 # nginx's built-in $variables (e.g. $host, $uri) survive untouched.
-ENV NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_URL|BACKEND_HOST)$"
+ENV NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_URL|BACKEND_HOST|NGINX_RESOLVER)$"
 
 # Defaults let `docker compose` work with no extra config. On Railway these are
 # overridden: PORT is auto-injected, BACKEND_URL/BACKEND_HOST point at the
@@ -26,6 +26,8 @@ ENV NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_URL|BACKEND_HOST)$"
 ENV PORT=80
 ENV BACKEND_URL=http://backend:8080
 ENV BACKEND_HOST=backend
+# Docker embedded DNS for local compose; Railway sets this to a public resolver.
+ENV NGINX_RESOLVER=127.0.0.11
 
 # Config template (SPA fallback + reverse proxy for /api and /actuator).
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template

@@ -59,6 +59,8 @@ export default defineRailway(() => {
       // Point the templated nginx at the backend's generated public domain.
       BACKEND_URL: "https://${{backend.RAILWAY_PUBLIC_DOMAIN}}",
       BACKEND_HOST: "${{backend.RAILWAY_PUBLIC_DOMAIN}}",
+      // Public DNS resolver for the backend's public domain.
+      NGINX_RESOLVER: "1.1.1.1",
     },
   });
 

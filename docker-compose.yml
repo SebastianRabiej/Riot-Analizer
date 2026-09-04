@@ -48,6 +48,7 @@ services:
       PORT: "80"
       BACKEND_URL: http://backend:8080
       BACKEND_HOST: backend
+      NGINX_RESOLVER: 127.0.0.11
     # Frontend is published on a fixed host port. Open http://localhost:50398
     ports:
       - "50398:80"
