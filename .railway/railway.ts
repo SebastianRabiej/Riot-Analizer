@@ -37,6 +37,8 @@ export default defineRailway(() => {
     builder: "dockerfile",              // (verify) build from backend/Dockerfile
     healthcheck: "/actuator/health",
     env: {
+      // Pin the listening port so `railway domain -p 8080` is deterministic.
+      PORT: "8080",
       // Spring wants a JDBC URL; compose it from Railway's Postgres variables.
       SPRING_DATASOURCE_URL:
         "jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}",
@@ -56,6 +58,8 @@ export default defineRailway(() => {
     source: github(REPO, { rootDirectory: "frontend" }),
     builder: "dockerfile",              // (verify) build from frontend/Dockerfile
     env: {
+      // Pin nginx to :80 so `railway domain -p 80` is deterministic.
+      PORT: "80",
       // Point the templated nginx at the backend's generated public domain.
       BACKEND_URL: "https://${{backend.RAILWAY_PUBLIC_DOMAIN}}",
       BACKEND_HOST: "${{backend.RAILWAY_PUBLIC_DOMAIN}}",

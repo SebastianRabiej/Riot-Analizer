@@ -19,3 +19,10 @@ port:
 # Rebuild images from scratch and restart.
 rebuild:
 	docker compose up --build -d --force-recreate
+
+# ---- Railway (cloud) ----
+# One-shot, reproducible provision of the whole Railway environment from code.
+# Requires: railway CLI logged in + linked, and RIOT_API_KEY exported.
+.PHONY: railway-provision
+railway-provision:
+	./scripts/railway-provision.sh
