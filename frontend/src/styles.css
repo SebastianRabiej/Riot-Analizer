@@ -546,3 +546,24 @@ tr.me-row td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
 .death-row.selected { box-shadow: 0 0 0 2px var(--loss); }
 .death-row .map-hint { color: var(--teal); font-size: 11px; font-weight: 600; }
 .map-tip.pinned { border-color: var(--loss); }
+
+/* ---------- home / index page ---------- */
+.home { max-width: 860px; margin: 0 auto; }
+.home-hero { text-align: center; padding: 6vh 0 34px; }
+.home-hero .brand-mark { width: 54px; height: 54px; font-size: 22px; border-radius: 14px; margin: 0 auto 18px; }
+.home-hero h1 { font-size: 27px; margin-bottom: 8px; }
+.home-hero p { color: var(--text-2); margin: 0 auto 22px; max-width: 440px; }
+
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+
+.track-card.clickable {
+  width: 100%; text-align: left; font: inherit; color: inherit;
+  cursor: pointer;
+  transition: border-color .14s, transform .14s, background .14s;
+}
+.track-card.clickable:hover { border-color: var(--teal-dim); background: var(--panel-3); transform: translateY(-2px); }
+.track-card .tc-open { color: var(--text-3); font-size: 20px; line-height: 1; flex-shrink: 0; margin-left: 4px; }
+.track-card.clickable:hover .tc-open { color: var(--teal); }
+
+.empty-tracked { display: grid; place-items: center; gap: 8px; text-align: center; padding: 40px 20px; }
+.empty-tracked .emoji { font-size: 30px; }
