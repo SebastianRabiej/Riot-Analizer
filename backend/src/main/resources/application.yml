@@ -9,9 +9,17 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:riotanalizer}
     password: ${SPRING_DATASOURCE_PASSWORD:riotanalizer}
     driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    # Existing databases were created by the old ddl-auto=update behaviour and
+    # already contain the V1 tables, so adopt them as the baseline instead of
+    # trying to re-run V1. Fresh/empty databases run every migration from V1.
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "Adopt existing Hibernate-generated schema"
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
