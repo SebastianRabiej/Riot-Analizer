@@ -28,6 +28,9 @@ function objKind(sub: string | null): 'Dragon' | 'Baron' | 'Herald' | 'Grubs' | 
 }
 const OBJ_EMOJI: Record<string, string> = { Dragon: '🐉', Baron: '🟪', Herald: '👁️', Grubs: '🐛', Objective: '⭐' };
 
+type MapEvent = { ts: number; x: number | null; y: number | null; cat: 'mine' | 'death' | 'ally' | 'enemy' | 'obj'; raw: TimelineEvent | null; obj: { kind: string; byMyTeam: boolean } | null };
+const CAT_COLOR: Record<MapEvent['cat'], string> = { mine: 'var(--win)', death: 'var(--loss)', ally: 'var(--teal)', enemy: 'var(--warn)', obj: 'var(--gold)' };
+
 function gradeColor(g: string): string {
   return g === 'S' ? 'var(--gold)' : g === 'A' ? 'var(--win)' : g === 'B' ? 'var(--teal)' : g === 'C' ? 'var(--warn)' : 'var(--loss)';
 }
@@ -42,6 +45,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
   const [mapMode, setMapMode] = useState<'you' | 'all'>('you');
   const [hover, setHover] = useState<{ x: number; y: number; e: TimelineEvent } | null>(null);
   const [selectedDeath, setSelectedDeath] = useState<number | null>(null);
+  const [curIdx, setCurIdx] = useState<number | null>(null);
 
   const d = useMemo(() => {
     if (!data) return null;
@@ -144,7 +148,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
         const myP = pfIn(f, meId);
         let present = false;
         if (mine && myP && e.x != null && e.y != null) present = Math.hypot(e.x - myP.x, e.y - myP.y) < 2600;
-        return { min: e.timestampMs / 60000, kind: objKind(e.subType), byMyTeam: mine, present, x: e.x, y: e.y };
+        return { ts: e.timestampMs, min: e.timestampMs / 60000, kind: objKind(e.subType), byMyTeam: mine, present, x: e.x, y: e.y };
       });
 
     const champName = (pid: number | null | undefined) => (pid == null ? '?' : byId.get(pid)?.championName ?? '?');
@@ -228,11 +232,32 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
     return {
       me, opp, meId, myTeam, byId, teamOf, goldSeries, kills, k, d: dd, a, solo, kp, kda,
       goldShare, dmgShare, csPerMin, dmgPerMin, finalCs, wardsPlaced, wardsKilled, controlWards,
-      lvl6, lane10, lane14, deaths, objectives, gameMin, grade,
+      lvl6, lane10, lane14, deaths, objectives, gameMin, gameEndMs: last.timestampMs, grade,
       champName, myBacks, oppBacks, myPeakGold, myPeakMin, oppPeakGold,
       myEndGold: myGold, oppEndGold,
     };
   }, [data, mePuuid]);
+
+  const timelineEvents = useMemo<MapEvent[]>(() => {
+    if (!d) return [];
+    const out: MapEvent[] = [];
+    const pool = mapMode === 'you'
+      ? d.kills.filter((e) => e.killerId === d.meId || e.victimId === d.meId)
+      : d.kills;
+    for (const e of pool) {
+      let cat: MapEvent['cat'];
+      if (e.killerId === d.meId) cat = 'mine';
+      else if (e.victimId === d.meId) cat = 'death';
+      else if (d.teamOf(e.killerId) === d.myTeam) cat = 'ally';
+      else cat = 'enemy';
+      out.push({ ts: e.timestampMs, x: e.x, y: e.y, cat, raw: e, obj: null });
+    }
+    for (const o of d.objectives) {
+      out.push({ ts: o.ts, x: o.x, y: o.y, cat: 'obj', raw: null, obj: { kind: o.kind, byMyTeam: o.byMyTeam } });
+    }
+    out.sort((p, q) => p.ts - q.ts);
+    return out;
+  }, [d, mapMode]);
 
   if (loading && !data) return <Loading label="Fetching match timeline…" />;
   if (error) return <ErrorBox message={`Couldn't load timeline: ${error}`} />;
@@ -261,10 +286,31 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
 
   const jumpToMapDeath = (idx: number) => {
     setSelectedDeath(idx);
+    setCurIdx(null);
     setMapMode('you');
     document.getElementById('kill-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
   const selDeath = selectedDeath != null && d.deaths[selectedDeath] ? d.deaths[selectedDeath] : null;
+  const curEvt = curIdx != null && timelineEvents[curIdx] ? timelineEvents[curIdx] : null;
+  const endMs = Math.max(d.gameEndMs, timelineEvents.length ? timelineEvents[timelineEvents.length - 1].ts : 0) || 1;
+  const selectEvent = (i: number) => {
+    if (i < 0 || i >= timelineEvents.length) return;
+    setSelectedDeath(null);
+    setCurIdx(i);
+    requestAnimationFrame(() => document.getElementById(`ev-row-${i}`)?.scrollIntoView({ block: 'nearest' }));
+  };
+  const evActor = (ev: MapEvent) => (ev.raw ? d.champName(ev.raw.killerId) : '?');
+  const evShort = (ev: MapEvent) => {
+    if (ev.obj) return <><span className="ev-strong">{ev.obj.kind}</span> · {ev.obj.byMyTeam ? 'your team' : 'enemy team'}</>;
+    const e = ev.raw!;
+    if (ev.cat === 'mine') return <>You killed <span className="ev-strong">{d.champName(e.victimId)}</span></>;
+    if (ev.cat === 'death') return <>Killed by <span className="ev-strong">{d.champName(e.killerId)}</span></>;
+    return <><span className="ev-strong">{d.champName(e.killerId)}</span> ▸ {d.champName(e.victimId)}</>;
+  };
+  const evDesc = (ev: MapEvent) => {
+    if (ev.obj) return <div><b>{mmss(ev.ts)}</b> · {OBJ_EMOJI[ev.obj.kind]} {ev.obj.kind} secured by {ev.obj.byMyTeam ? 'your team' : 'the enemy team'}</div>;
+    return killLabel(ev.raw!);
+  };
   const dragCount = d.objectives.filter((o) => o.kind === 'Dragon' && o.byMyTeam);
   const objSummary = ['Dragon', 'Herald', 'Baron', 'Grubs']
     .map((kind) => {
@@ -282,8 +328,9 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
         <Panel
           title="Kill map"
           sub="Your kills (green) and deaths (red), with objectives"
-          action={<Segmented options={[{ value: 'you', label: 'Your K/D' }, { value: 'all', label: 'All kills' }]} value={mapMode} onChange={setMapMode} />}
+          action={<Segmented options={[{ value: 'you', label: 'Your K/D' }, { value: 'all', label: 'All kills' }]} value={mapMode} onChange={(v) => { setMapMode(v); setCurIdx(null); }} />}
         >
+          <div className="killmap-layout">
           <div className="riftmap" id="kill-map">
             <svg viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`} width="100%" style={{ display: 'block', borderRadius: 10 }}>
               <image href={mapUrl} x={0} y={0} width={MAP_SIZE} height={MAP_SIZE} preserveAspectRatio="xMidYMid slice" opacity={0.85} />
@@ -328,6 +375,19 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
                   </g>
                 );
               })()}
+              {curEvt && curEvt.x != null && curEvt.y != null && (() => {
+                const { cx, cy } = toXY(curEvt.x, curEvt.y);
+                const col = CAT_COLOR[curEvt.cat];
+                return (
+                  <g key="curpin" style={{ pointerEvents: 'none' }}>
+                    <circle cx={cx} cy={cy} r={11} fill="none" stroke={col} strokeWidth={2.5}>
+                      <animate attributeName="r" values="9;18;9" dur="1.4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx={cx} cy={cy} r={3} fill={col} stroke="#0b0d12" strokeWidth={1} />
+                  </g>
+                );
+              })()}
             </svg>
             {hover && (
               <div className="map-tip" style={{ left: `${(hover.x / MAP_SIZE) * 100}%`, top: `${(hover.y / MAP_SIZE) * 100}%` }}>
@@ -340,6 +400,62 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
               <span className="note">🐉 dragons · 👁️ herald · 🟪 baron</span>
             </div>
           </div>
+            <aside className="event-list">
+              <div className="event-list-head note">{timelineEvents.length} events · {mapMode === 'you' ? 'your kills & deaths' : 'all kills'} + objectives</div>
+              <div className="event-list-scroll">
+                {timelineEvents.length === 0 ? (
+                  <div className="note" style={{ padding: '8px 4px' }}>No events to show.</div>
+                ) : timelineEvents.map((ev, i) => (
+                  <div
+                    key={i}
+                    id={`ev-row-${i}`}
+                    className={`event-row ${ev.cat} ${i === curIdx ? 'selected' : ''}`}
+                    onClick={() => selectEvent(i)}
+                    role="button"
+                    title="Show this event on the map"
+                  >
+                    <span className="ev-min tnum">{mmss(ev.ts)}</span>
+                    {ev.obj
+                      ? <span className="ev-emoji">{OBJ_EMOJI[ev.obj.kind]}</span>
+                      : <ChampionIcon championName={evActor(ev)} size={22} />}
+                    <span className="ev-text">{evShort(ev)}</span>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          </div>
+          {timelineEvents.length > 0 && (
+            <div className="timeline-scrubber">
+              <div className="tl-track" aria-hidden="true">
+                {timelineEvents.map((ev, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`tl-tick ${ev.cat} ${i === curIdx ? 'on' : ''}`}
+                    style={{ left: `${(ev.ts / endMs) * 100}%`, background: CAT_COLOR[ev.cat] }}
+                    title={mmss(ev.ts)}
+                    onClick={() => selectEvent(i)}
+                  />
+                ))}
+              </div>
+              <input
+                className="tl-range"
+                type="range"
+                min={0}
+                max={timelineEvents.length - 1}
+                step={1}
+                value={curIdx ?? 0}
+                onChange={(e) => selectEvent(Number(e.target.value))}
+              />
+              <div className="tl-desc">
+                <button type="button" className="tl-nav" disabled={curIdx == null || curIdx <= 0} onClick={() => selectEvent((curIdx ?? 0) - 1)} title="Previous event">‹</button>
+                <div className="tl-desc-body">
+                  {curEvt ? evDesc(curEvt) : <span className="note">Drag the slider or pick an event to step through the game — {timelineEvents.length} in total.</span>}
+                </div>
+                <button type="button" className="tl-nav" disabled={curIdx != null && curIdx >= timelineEvents.length - 1} onClick={() => selectEvent((curIdx ?? -1) + 1)} title="Next event">›</button>
+              </div>
+            </div>
+          )}
         </Panel>
 
         {/* Scorecard */}
