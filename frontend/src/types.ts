@@ -378,6 +378,8 @@ export interface TimelineEvent {
 export interface TimelineAnalysis {
   matchId: string;
   frameIntervalMs: number;
+  queueId?: number | null;
+  mapId?: number | null;
   participants: TimelineParticipant[];
   frames: TimelineFrame[];
   events: TimelineEvent[];

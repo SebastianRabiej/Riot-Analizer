@@ -37,7 +37,7 @@ public class MatchTimelineService {
     private static final Logger log = LoggerFactory.getLogger(MatchTimelineService.class);
 
     /** Bump when the distilled timeline shape changes so old cache rows are refetched. */
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
 
     /** Event types we keep; everything else (item purchases, skill levels…) is dropped. */
     private static final Set<String> KEEP = Set.of(
@@ -80,7 +80,7 @@ public class MatchTimelineService {
         }
 
         JsonNode tl = riot.getMatchTimeline(matchId);
-        TimelineAnalysisDto dto = distill(matchId, tl, byPuuid);
+        TimelineAnalysisDto dto = distill(matchId, tl, byPuuid, m.getQueueId(), m.getMapId());
 
         try {
             cache.save(new MatchTimelineCache(matchId, mapper.writeValueAsString(dto), SCHEMA_VERSION, Instant.now()));
@@ -90,7 +90,8 @@ public class MatchTimelineService {
         return dto;
     }
 
-    private TimelineAnalysisDto distill(String matchId, JsonNode tl, Map<String, Participant> byPuuid) {
+    private TimelineAnalysisDto distill(String matchId, JsonNode tl, Map<String, Participant> byPuuid,
+                                        Integer queueId, Integer mapId) {
         JsonNode info = tl.path("info");
         long frameInterval = info.path("frameInterval").asLong(60000L);
 
@@ -152,7 +153,7 @@ public class MatchTimelineService {
             }
         }
 
-        return new TimelineAnalysisDto(matchId, frameInterval, participants, frames, events);
+        return new TimelineAnalysisDto(matchId, frameInterval, queueId, mapId, participants, frames, events);
     }
 
     private TimelineEventDto toEvent(String type, JsonNode ev) {

@@ -7,6 +7,8 @@ import java.util.List;
 public record TimelineAnalysisDto(
         String matchId,
         long frameIntervalMs,
+        Integer queueId,
+        Integer mapId,
         List<TimelineParticipantDto> participants,
         List<TimelineFrameDto> frames,
         List<TimelineEventDto> events

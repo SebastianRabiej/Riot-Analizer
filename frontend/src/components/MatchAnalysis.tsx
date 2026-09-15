@@ -9,13 +9,25 @@ import { itemIconUrl } from '../ddragon';
 import { MapObjectiveIcon, ObjectiveIcon, dragonElement, type ObjKind } from './objectiveIcons';
 import { clamp, formatDuration, formatNumber, positionLabel, round } from '../util';
 
-const MAP_MIN = -120;
-const MAP_MAX = 14870;
 const MAP_SIZE = 460;
 
-function toXY(x: number, y: number) {
-  const nx = (x - MAP_MIN) / (MAP_MAX - MAP_MIN);
-  const ny = (y - MAP_MIN) / (MAP_MAX - MAP_MIN);
+// Per-map world-coordinate bounds and Data Dragon minimap id. Summoner's Rift
+// (11) and Howling Abyss / ARAM (12) use different coordinate ranges, so the
+// same kill position projects to a different spot on each map.
+type MapConfig = { ddragonId: number; min: number; max: number };
+const MAP_CONFIGS: Record<number, MapConfig> = {
+  11: { ddragonId: 11, min: -120, max: 14870 }, // Summoner's Rift
+  12: { ddragonId: 12, min: -28, max: 12849 },  // Howling Abyss (ARAM)
+};
+const DEFAULT_MAP_CONFIG: MapConfig = MAP_CONFIGS[11];
+
+function mapConfigFor(mapId: number | null | undefined): MapConfig {
+  return (mapId != null && MAP_CONFIGS[mapId]) || DEFAULT_MAP_CONFIG;
+}
+
+function projectXY(x: number, y: number, cfg: MapConfig) {
+  const nx = (x - cfg.min) / (cfg.max - cfg.min);
+  const ny = (y - cfg.min) / (cfg.max - cfg.min);
   return { cx: clamp(nx, 0, 1) * MAP_SIZE, cy: (1 - clamp(ny, 0, 1)) * MAP_SIZE };
 }
 
@@ -282,7 +294,9 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
     );
   };
 
-  const mapUrl = `https://ddragon.leagueoflegends.com/cdn/${version}/img/map/map11.png`;
+  const mapCfg = mapConfigFor(data?.mapId);
+  const toXY = (x: number, y: number) => projectXY(x, y, mapCfg);
+  const mapUrl = `https://ddragon.leagueoflegends.com/cdn/${version}/img/map/map${mapCfg.ddragonId}.png`;
 
   const jumpToMapDeath = (idx: number) => {
     setSelectedDeath(idx);
