@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import type { TimelineParticipant, TimelineEvent } from '../types';
 import { getMatchAnalysis } from '../api';
@@ -6,6 +6,7 @@ import { useAsync, useDdragonVersion, useItemData } from '../hooks';
 import { Panel, Loading, ErrorBox, EmptyState, StatTile, Segmented } from './ui';
 import { ChampionIcon } from './icons';
 import { itemIconUrl } from '../ddragon';
+import { MapObjectiveIcon, ObjectiveIcon, dragonElement, type ObjKind } from './objectiveIcons';
 import { clamp, formatDuration, formatNumber, positionLabel, round } from '../util';
 
 const MAP_MIN = -120;
@@ -18,7 +19,7 @@ function toXY(x: number, y: number) {
   return { cx: clamp(nx, 0, 1) * MAP_SIZE, cy: (1 - clamp(ny, 0, 1)) * MAP_SIZE };
 }
 
-function objKind(sub: string | null): 'Dragon' | 'Baron' | 'Herald' | 'Grubs' | 'Objective' {
+function objKind(sub: string | null): ObjKind {
   const s = (sub ?? '').toUpperCase();
   if (s.includes('DRAGON')) return 'Dragon';
   if (s.includes('BARON')) return 'Baron';
@@ -26,9 +27,8 @@ function objKind(sub: string | null): 'Dragon' | 'Baron' | 'Herald' | 'Grubs' | 
   if (s.includes('HORDE') || s.includes('GRUB') || s.includes('VOID')) return 'Grubs';
   return 'Objective';
 }
-const OBJ_EMOJI: Record<string, string> = { Dragon: '🐉', Baron: '🟪', Herald: '👁️', Grubs: '🐛', Objective: '⭐' };
 
-type MapEvent = { ts: number; x: number | null; y: number | null; cat: 'mine' | 'death' | 'ally' | 'enemy' | 'obj'; raw: TimelineEvent | null; obj: { kind: string; byMyTeam: boolean } | null };
+type MapEvent = { ts: number; x: number | null; y: number | null; cat: 'mine' | 'death' | 'ally' | 'enemy' | 'obj'; raw: TimelineEvent | null; obj: { kind: ObjKind; byMyTeam: boolean; element: string | null } | null };
 const CAT_COLOR: Record<MapEvent['cat'], string> = { mine: 'var(--win)', death: 'var(--loss)', ally: 'var(--teal)', enemy: 'var(--warn)', obj: 'var(--gold)' };
 
 function gradeColor(g: string): string {
@@ -43,7 +43,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
   const items = useItemData();
   const { data, loading, error } = useAsync(() => getMatchAnalysis(matchId), [matchId]);
   const [mapMode, setMapMode] = useState<'you' | 'all'>('you');
-  const [hover, setHover] = useState<{ x: number; y: number; e: TimelineEvent } | null>(null);
+  const [hover, setHover] = useState<{ x: number; y: number; content: ReactNode } | null>(null);
   const [selectedDeath, setSelectedDeath] = useState<number | null>(null);
   const [curIdx, setCurIdx] = useState<number | null>(null);
 
@@ -148,7 +148,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
         const myP = pfIn(f, meId);
         let present = false;
         if (mine && myP && e.x != null && e.y != null) present = Math.hypot(e.x - myP.x, e.y - myP.y) < 2600;
-        return { ts: e.timestampMs, min: e.timestampMs / 60000, kind: objKind(e.subType), byMyTeam: mine, present, x: e.x, y: e.y };
+        return { ts: e.timestampMs, min: e.timestampMs / 60000, kind: objKind(e.subType), element: dragonElement(e.subType), byMyTeam: mine, present, x: e.x, y: e.y };
       });
 
     const champName = (pid: number | null | undefined) => (pid == null ? '?' : byId.get(pid)?.championName ?? '?');
@@ -253,7 +253,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
       out.push({ ts: e.timestampMs, x: e.x, y: e.y, cat, raw: e, obj: null });
     }
     for (const o of d.objectives) {
-      out.push({ ts: o.ts, x: o.x, y: o.y, cat: 'obj', raw: null, obj: { kind: o.kind, byMyTeam: o.byMyTeam } });
+      out.push({ ts: o.ts, x: o.x, y: o.y, cat: 'obj', raw: null, obj: { kind: o.kind, byMyTeam: o.byMyTeam, element: o.element } });
     }
     out.sort((p, q) => p.ts - q.ts);
     return out;
@@ -310,10 +310,16 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
     if (ev.cat === 'death') return <>Killed by <span className="ev-strong">{d.champName(e.killerId)}</span></>;
     return <><span className="ev-strong">{d.champName(e.killerId)}</span> ▸ {d.champName(e.victimId)}</>;
   };
-  const evDesc = (ev: MapEvent) => {
-    if (ev.obj) return <div><b>{mmss(ev.ts)}</b> · {OBJ_EMOJI[ev.obj.kind]} {ev.obj.kind} secured by {ev.obj.byMyTeam ? 'your team' : 'the enemy team'}</div>;
-    return killLabel(ev.raw!);
-  };
+  const objectiveTip = (kind: ObjKind, element: string | null, byMyTeam: boolean, ts: number): ReactNode => (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <b>{mmss(ts)}</b> · <ObjectiveIcon kind={kind} element={element} size={16} /> <span>{kind}</span>
+      </div>
+      <div className="note">secured by {byMyTeam ? 'your team' : 'the enemy team'}</div>
+    </>
+  );
+  const eventTip = (ev: MapEvent): ReactNode => (ev.obj ? objectiveTip(ev.obj.kind, ev.obj.element, ev.obj.byMyTeam, ev.ts) : killLabel(ev.raw!));
+  const evDesc = (ev: MapEvent) => eventTip(ev);
   const dragCount = d.objectives.filter((o) => o.kind === 'Dragon' && o.byMyTeam);
   const objSummary = ['Dragon', 'Herald', 'Baron', 'Grubs']
     .map((kind) => {
@@ -344,15 +350,20 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
               {mapMode === 'all' && d.kills.filter((e) => e.x != null && e.y != null).map((e, i) => {
                 const { cx, cy } = toXY(e.x!, e.y!);
                 const mineKill = d.teamOf(e.killerId) === d.myTeam;
-                return <circle key={`a${i}`} cx={cx} cy={cy} r={3.5} fill={mineKill ? 'var(--teal)' : 'var(--warn)'} opacity={0.62} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, e })} onMouseLeave={() => setHover(null)} />;
+                return <circle key={`a${i}`} cx={cx} cy={cy} r={3.5} fill={mineKill ? 'var(--teal)' : 'var(--warn)'} opacity={0.62} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, content: killLabel(e) })} onMouseLeave={() => setHover(null)} />;
               })}
               {d.objectives.filter((o) => o.x != null && o.y != null).map((o, i) => {
                 const { cx, cy } = toXY(o.x!, o.y!);
-                return <text key={`o${i}`} x={cx} y={cy} fontSize={15} textAnchor="middle" dominantBaseline="central">{OBJ_EMOJI[o.kind]}</text>;
+                return (
+                  <g key={`o${i}`} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, content: objectiveTip(o.kind, o.element, o.byMyTeam, o.ts) })} onMouseLeave={() => setHover(null)}>
+                    <MapObjectiveIcon cx={cx} cy={cy} size={19} kind={o.kind} element={o.element} />
+                    <circle cx={cx} cy={cy} r={11} fill="transparent" />
+                  </g>
+                );
               })}
               {mapMode === 'you' && d.kills.filter((e) => e.killerId === d.meId && e.x != null).map((e, i) => {
                 const { cx, cy } = toXY(e.x!, e.y!);
-                return <circle key={`k${i}`} cx={cx} cy={cy} r={6} fill="var(--win)" stroke="#0b0d12" strokeWidth={1.5} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, e })} onMouseLeave={() => setHover(null)} />;
+                return <circle key={`k${i}`} cx={cx} cy={cy} r={6} fill="var(--win)" stroke="#0b0d12" strokeWidth={1.5} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, content: killLabel(e) })} onMouseLeave={() => setHover(null)} />;
               })}
               {mapMode === 'you' && d.kills.filter((e) => e.victimId === d.meId && e.x != null).map((e, i) => {
                 const { cx, cy } = toXY(e.x!, e.y!);
@@ -362,7 +373,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
                       <line x1={cx - 5} y1={cy - 5} x2={cx + 5} y2={cy + 5} />
                       <line x1={cx - 5} y1={cy + 5} x2={cx + 5} y2={cy - 5} />
                     </g>
-                    <circle cx={cx} cy={cy} r={8} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, e })} onMouseLeave={() => setHover(null)} />
+                    <circle cx={cx} cy={cy} r={8} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, content: killLabel(e) })} onMouseLeave={() => setHover(null)} />
                   </g>
                 );
               })}
@@ -397,7 +408,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
             </svg>
             {hover && (
               <div className="map-tip" style={{ left: `${(hover.x / MAP_SIZE) * 100}%`, top: `${(hover.y / MAP_SIZE) * 100}%` }}>
-                {killLabel(hover.e)}
+                {hover.content}
               </div>
             )}
             <div className="row wrap" style={{ gap: 12, marginTop: 8 }}>
@@ -413,7 +424,7 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
                   <span className="note"><span style={{ color: 'var(--warn)' }}>●</span> enemy kills</span>
                 </>
               )}
-              <span className="note">🐉 dragons · 👁️ herald · 🟪 baron</span>
+              <span className="note" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ObjectiveIcon kind="Dragon" size={14} /> dragon <ObjectiveIcon kind="Herald" size={14} /> herald <ObjectiveIcon kind="Baron" size={14} /> baron</span>
             </div>
           </div>
             <aside className="event-list">
@@ -427,12 +438,14 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
                     id={`ev-row-${i}`}
                     className={`event-row ${ev.cat} ${i === curIdx ? 'selected' : ''}`}
                     onClick={() => selectEvent(i)}
+                    onMouseEnter={() => { if (ev.x != null && ev.y != null) { const { cx, cy } = toXY(ev.x, ev.y); setHover({ x: cx, y: cy, content: eventTip(ev) }); } }}
+                    onMouseLeave={() => setHover(null)}
                     role="button"
                     title="Show this event on the map"
                   >
                     <span className="ev-min tnum">{mmss(ev.ts)}</span>
                     {ev.obj
-                      ? <span className="ev-emoji">{OBJ_EMOJI[ev.obj.kind]}</span>
+                      ? <ObjectiveIcon kind={ev.obj.kind} element={ev.obj.element} size={22} />
                       : <ChampionIcon championName={evActor(ev)} size={22} />}
                     <span className="ev-text">{evShort(ev)}</span>
                   </div>
@@ -632,8 +645,8 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
             <div className="stack" style={{ gap: 10 }}>
               <div className="row wrap" style={{ gap: 8 }}>
                 {objSummary.map((o) => (
-                  <span key={o.kind} className={`chip ${o.present === o.total ? 'active' : ''}`}>
-                    {OBJ_EMOJI[o.kind]} {o.kind}: {o.present}/{o.total} present
+                  <span key={o.kind} className={`chip ${o.present === o.total ? 'active' : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <ObjectiveIcon kind={o.kind as ObjKind} size={15} /> {o.kind}: {o.present}/{o.total} present
                   </span>
                 ))}
               </div>
