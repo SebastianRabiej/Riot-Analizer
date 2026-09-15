@@ -293,6 +293,9 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
   const selDeath = selectedDeath != null && d.deaths[selectedDeath] ? d.deaths[selectedDeath] : null;
   const curEvt = curIdx != null && timelineEvents[curIdx] ? timelineEvents[curIdx] : null;
   const endMs = Math.max(d.gameEndMs, timelineEvents.length ? timelineEvents[timelineEvents.length - 1].ts : 0) || 1;
+  const mySide = d.myTeam === 100 ? 'Blue' : 'Red';
+  const mySideColor = d.myTeam === 100 ? 'var(--blue)' : 'var(--loss)';
+  const sidePoly = d.myTeam === 100 ? `0,0 0,${MAP_SIZE} ${MAP_SIZE},${MAP_SIZE}` : `0,0 ${MAP_SIZE},0 ${MAP_SIZE},${MAP_SIZE}`;
   const selectEvent = (i: number) => {
     if (i < 0 || i >= timelineEvents.length) return;
     setSelectedDeath(null);
@@ -335,10 +338,13 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
             <svg viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`} width="100%" style={{ display: 'block', borderRadius: 10 }}>
               <image href={mapUrl} x={0} y={0} width={MAP_SIZE} height={MAP_SIZE} preserveAspectRatio="xMidYMid slice" opacity={0.85} />
               <rect x={0} y={0} width={MAP_SIZE} height={MAP_SIZE} fill="none" stroke="var(--border-2)" rx={10} />
+              <polygon points={sidePoly} fill={mySideColor} opacity={0.09} style={{ pointerEvents: 'none' }} />
+              <text x={9} y={MAP_SIZE - 8} textAnchor="start" fontSize={11} fontWeight={800} fill="var(--blue)" stroke="#0b0d12" strokeWidth={3} paintOrder="stroke" style={{ pointerEvents: 'none' }}>{d.myTeam === 100 ? 'YOUR BASE' : 'ENEMY'}</text>
+              <text x={MAP_SIZE - 9} y={16} textAnchor="end" fontSize={11} fontWeight={800} fill="var(--loss)" stroke="#0b0d12" strokeWidth={3} paintOrder="stroke" style={{ pointerEvents: 'none' }}>{d.myTeam === 200 ? 'YOUR BASE' : 'ENEMY'}</text>
               {mapMode === 'all' && d.kills.filter((e) => e.x != null && e.y != null).map((e, i) => {
                 const { cx, cy } = toXY(e.x!, e.y!);
-                const blue = d.teamOf(e.killerId) === 100;
-                return <circle key={`a${i}`} cx={cx} cy={cy} r={3.5} fill={blue ? 'var(--blue)' : 'var(--loss)'} opacity={0.55} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, e })} onMouseLeave={() => setHover(null)} />;
+                const mineKill = d.teamOf(e.killerId) === d.myTeam;
+                return <circle key={`a${i}`} cx={cx} cy={cy} r={3.5} fill={mineKill ? 'var(--teal)' : 'var(--warn)'} opacity={0.62} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ x: cx, y: cy, e })} onMouseLeave={() => setHover(null)} />;
               })}
               {d.objectives.filter((o) => o.x != null && o.y != null).map((o, i) => {
                 const { cx, cy } = toXY(o.x!, o.y!);
@@ -395,8 +401,18 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
               </div>
             )}
             <div className="row wrap" style={{ gap: 12, marginTop: 8 }}>
-              <span className="note"><span style={{ color: 'var(--win)' }}>●</span> your kills ({d.k})</span>
-              <span className="note"><span style={{ color: 'var(--loss)' }}>✕</span> your deaths ({d.d})</span>
+              <span className="side-badge" style={{ borderColor: mySideColor, color: mySideColor }}>You → {mySide} side</span>
+              {mapMode === 'you' ? (
+                <>
+                  <span className="note"><span style={{ color: 'var(--win)' }}>●</span> your kills ({d.k})</span>
+                  <span className="note"><span style={{ color: 'var(--loss)' }}>✕</span> your deaths ({d.d})</span>
+                </>
+              ) : (
+                <>
+                  <span className="note"><span style={{ color: 'var(--teal)' }}>●</span> your team's kills</span>
+                  <span className="note"><span style={{ color: 'var(--warn)' }}>●</span> enemy kills</span>
+                </>
+              )}
               <span className="note">🐉 dragons · 👁️ herald · 🟪 baron</span>
             </div>
           </div>
