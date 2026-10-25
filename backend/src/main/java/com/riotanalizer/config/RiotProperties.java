@@ -21,8 +21,37 @@ public class RiotProperties {
     /** Epoch millis marking the start of the current season. */
     private long currentSeasonStartEpochMs = 1736380800000L;
 
-    /** Scheduler fixed delay in millis. */
-    private long fetchIntervalMs = 600000L;
+    /**
+     * How often the scheduler wakes up to look for players that are due. A tick
+     * that finds nobody due costs one DB query and no Riot calls; how often a
+     * player is actually fetched is decided per player (see CheckCadence).
+     */
+    private long schedulerTickMs = 15000L;
+
+    /**
+     * How many hops away from a TRACKED player discovery goes: 1 = only people
+     * met in tracked players' matches; 2 = also people met in those players'
+     * matches; -1 = unbounded. 0 disables discovery.
+     */
+    private int discoveryMaxDepth = 1;
+
+    /** Hard cap on the number of DISCOVERED players; 0 = no cap. */
+    private int discoveryMaxPlayers = 0;
+
+    /** Riot rate limits (defaults = development / personal key). */
+    private int rateLimitShortRequests = 20;
+    private long rateLimitShortWindowMs = 1_000L;
+    private int rateLimitLongRequests = 100;
+    private long rateLimitLongWindowMs = 120_000L;
+
+    /**
+     * Long-window permits background work leaves free so user-facing requests
+     * (refresh, analysis) start immediately: tracked history may not use the
+     * last {@code rateLimitTrackedReserve} permits, discovered history the last
+     * {@code rateLimitDiscoveredReserve}.
+     */
+    private int rateLimitTrackedReserve = 10;
+    private int rateLimitDiscoveredReserve = 25;
 
     /** Optional initial player to register+track on startup, "gameName#tagLine". */
     private String initialPlayer;
@@ -68,12 +97,76 @@ public class RiotProperties {
         this.currentSeasonStartEpochMs = currentSeasonStartEpochMs;
     }
 
-    public long getFetchIntervalMs() {
-        return fetchIntervalMs;
+    public long getSchedulerTickMs() {
+        return schedulerTickMs;
     }
 
-    public void setFetchIntervalMs(long fetchIntervalMs) {
-        this.fetchIntervalMs = fetchIntervalMs;
+    public void setSchedulerTickMs(long schedulerTickMs) {
+        this.schedulerTickMs = schedulerTickMs;
+    }
+
+    public int getDiscoveryMaxDepth() {
+        return discoveryMaxDepth;
+    }
+
+    public void setDiscoveryMaxDepth(int discoveryMaxDepth) {
+        this.discoveryMaxDepth = discoveryMaxDepth;
+    }
+
+    public int getDiscoveryMaxPlayers() {
+        return discoveryMaxPlayers;
+    }
+
+    public void setDiscoveryMaxPlayers(int discoveryMaxPlayers) {
+        this.discoveryMaxPlayers = discoveryMaxPlayers;
+    }
+
+    public int getRateLimitShortRequests() {
+        return rateLimitShortRequests;
+    }
+
+    public void setRateLimitShortRequests(int rateLimitShortRequests) {
+        this.rateLimitShortRequests = rateLimitShortRequests;
+    }
+
+    public long getRateLimitShortWindowMs() {
+        return rateLimitShortWindowMs;
+    }
+
+    public void setRateLimitShortWindowMs(long rateLimitShortWindowMs) {
+        this.rateLimitShortWindowMs = rateLimitShortWindowMs;
+    }
+
+    public int getRateLimitLongRequests() {
+        return rateLimitLongRequests;
+    }
+
+    public void setRateLimitLongRequests(int rateLimitLongRequests) {
+        this.rateLimitLongRequests = rateLimitLongRequests;
+    }
+
+    public long getRateLimitLongWindowMs() {
+        return rateLimitLongWindowMs;
+    }
+
+    public void setRateLimitLongWindowMs(long rateLimitLongWindowMs) {
+        this.rateLimitLongWindowMs = rateLimitLongWindowMs;
+    }
+
+    public int getRateLimitTrackedReserve() {
+        return rateLimitTrackedReserve;
+    }
+
+    public void setRateLimitTrackedReserve(int rateLimitTrackedReserve) {
+        this.rateLimitTrackedReserve = rateLimitTrackedReserve;
+    }
+
+    public int getRateLimitDiscoveredReserve() {
+        return rateLimitDiscoveredReserve;
+    }
+
+    public void setRateLimitDiscoveredReserve(int rateLimitDiscoveredReserve) {
+        this.rateLimitDiscoveredReserve = rateLimitDiscoveredReserve;
     }
 
     public String getInitialPlayer() {

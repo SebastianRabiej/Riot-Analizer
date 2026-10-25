@@ -17,17 +17,17 @@ Riot's match-v5 no longer returns a season id. "Current season" = matches whose 
 
 ## Rate limiting (dev key)
 
-Dev key limits: **20 requests / 1 s** and **100 requests / 120 s**, applied app-wide across ALL Riot calls. Implement a shared limiter (two token buckets, acquire from both before every outbound Riot request). The scheduled fetcher must never burst past this; it blocks/awaits tokens.
+Dev key limits: **20 requests / 1 s** and **100 requests / 120 s**, applied app-wide across ALL Riot calls. A shared limiter (two sliding windows, acquire from both before every outbound Riot request) serves waiters by priority: REFRESH > ANALYSIS > TRACKED_HISTORY > DISCOVERED_HISTORY. Background priorities leave a reserve of the long window free for user requests.
 
 ## Scheduler
 
-`@Scheduled(fixedDelayString = "${riot.fetch-interval-ms:600000}")` (default 10 min). For each tracked player: refresh account/summoner/rank, fetch newest match ids since last stored match, fetch+persist any missing match details (all 10 participants stored). Also refresh the live-game cache. All calls go through the rate limiter.
+`@Scheduled(fixedDelayString = "${riot.scheduler-tick-ms:15000}")`. Each tick repeatedly picks the most important *due* player (`next_check_at <= now`): TRACKED first (most overdue first), then DISCOVERED (lowest discovery depth first). Per check: backfill the season in batches until `backfill_complete`, afterwards a 1-call head check for new match ids; profile/rank only after new games or when old; live game for tracked only. `next_check_at` is then set from how recently the player last played (`CheckCadence`). Participants of newly stored matches become DISCOVERED (`riot.discovery-max-depth`, -1 = unbounded).
 
 ## Persistence (store ALL 10 participants per match)
 
 Storing every participant is what makes vs-player and vs-champion possible.
 
-- `player`(puuid PK, game_name, tag_line, summoner_id, profile_icon_id, summoner_level, solo_* rank fields, flex_* rank fields, last_fetched, tracked boolean)
+- `player`(puuid PK, game_name, tag_line, summoner_id, profile_icon_id, summoner_level, solo_* rank fields, flex_* rank fields, last_fetched, tracking_level TRACKED|DISCOVERED|NONE, discovery_depth, next_check_at, newest_match_at, backfill_complete)
 - `match`(match_id PK, queue_id, game_creation bigint, game_duration int, game_version, map_id)
 - `participant`(id PK, match_id FK, puuid, riot_id_game_name, riot_id_tag_line, champion_id, champion_name, team_id, team_position, win, kills, deaths, assists, total_cs (minions+neutral), vision_score, total_damage_to_champions, gold_earned, item0..item6, summoner1_id, summoner2_id)
 

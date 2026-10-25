@@ -3,6 +3,7 @@ package com.riotanalizer.service;
 import com.riotanalizer.client.RiotApiClient;
 import com.riotanalizer.client.dto.SummonerDto;
 import com.riotanalizer.domain.Player;
+import com.riotanalizer.domain.TrackingLevel;
 import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
 import com.riotanalizer.repository.PuuidRekeyRepository;
@@ -44,7 +45,7 @@ class PuuidMigrationRunnerTest {
     void rekeysPlayersWhosePuuidBelongsToAnotherKey() {
         Player old = player("old", "Foo", "EUNE");
         Player fine = player("fine", "Bar", "EUNE");
-        when(players.findAll()).thenReturn(List.of(old, fine));
+        when(players.findByTrackingLevelNot(TrackingLevel.DISCOVERED)).thenReturn(List.of(old, fine));
         when(riot.getSummonerByPuuid("old")).thenThrow(decryptError());
         when(riot.getSummonerByPuuid("fine")).thenReturn(new SummonerDto("sid", "fine", 1, 1L));
         when(playerRekey.rekey(old)).thenReturn(Optional.of(player("new", "Foo", "EUNE")));
@@ -58,7 +59,7 @@ class PuuidMigrationRunnerTest {
 
     @Test
     void doesNothingWhenAllPuuidsMatchTheKey() {
-        when(players.findAll()).thenReturn(List.of(player("fine", "Bar", "EUNE")));
+        when(players.findByTrackingLevelNot(TrackingLevel.DISCOVERED)).thenReturn(List.of(player("fine", "Bar", "EUNE")));
         when(riot.getSummonerByPuuid("fine")).thenReturn(new SummonerDto("sid", "fine", 1, 1L));
 
         assertEquals(0, runner.migratePlayers());
@@ -69,7 +70,7 @@ class PuuidMigrationRunnerTest {
 
     @Test
     void otherRiotErrorsAbortButStillOpenTheGate() {
-        when(players.findAll()).thenReturn(List.of(player("x", "Foo", "EUNE")));
+        when(players.findByTrackingLevelNot(TrackingLevel.DISCOVERED)).thenReturn(List.of(player("x", "Foo", "EUNE")));
         when(riot.getSummonerByPuuid("x")).thenThrow(new RiotApiException(403, "forbidden", "Forbidden"));
 
         runner.run(null);

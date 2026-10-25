@@ -47,11 +47,17 @@ public class PuuidRekeyRepository {
             return;
         }
         if (playerExists(newPuuid)) {
-            // Same person already registered under the new key: keep that row.
+            // Same person already registered under the new key: keep that row,
+            // with the stronger tracking level and the shallower discovery depth.
             jdbc.update("""
-                    UPDATE player
-                       SET tracked = tracked OR (SELECT tracked FROM player WHERE puuid = ?)
-                     WHERE puuid = ?
+                    UPDATE player n
+                       SET tracking_level = CASE
+                               WHEN 'TRACKED' IN (n.tracking_level, o.tracking_level) THEN 'TRACKED'
+                               WHEN 'DISCOVERED' IN (n.tracking_level, o.tracking_level) THEN 'DISCOVERED'
+                               ELSE 'NONE' END,
+                           discovery_depth = LEAST(n.discovery_depth, o.discovery_depth)
+                      FROM player o
+                     WHERE o.puuid = ? AND n.puuid = ?
                     """, oldPuuid, newPuuid);
             jdbc.update("DELETE FROM player WHERE puuid = ?", oldPuuid);
         } else {

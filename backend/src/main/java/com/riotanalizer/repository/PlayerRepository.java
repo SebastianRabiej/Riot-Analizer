@@ -1,8 +1,13 @@
 package com.riotanalizer.repository;
 
 import com.riotanalizer.domain.Player;
+import com.riotanalizer.domain.TrackingLevel;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,5 +15,21 @@ public interface PlayerRepository extends JpaRepository<Player, String> {
 
     Optional<Player> findByGameNameIgnoreCaseAndTagLineIgnoreCase(String gameName, String tagLine);
 
-    List<Player> findByTrackedTrue();
+    List<Player> findByTrackingLevel(TrackingLevel trackingLevel);
+
+    List<Player> findByTrackingLevelNot(TrackingLevel trackingLevel);
+
+    long countByTrackingLevel(TrackingLevel trackingLevel);
+
+    /**
+     * Players of one tracking level that are due for a check, closest to the
+     * tracked players first (lowest discovery depth), then most overdue first.
+     */
+    @Query("""
+            select p from Player p
+            where p.trackingLevel = :level
+              and (p.nextCheckAt is null or p.nextCheckAt <= :now)
+            order by p.discoveryDepth asc nulls first, p.nextCheckAt asc nulls first, p.puuid
+            """)
+    List<Player> findDue(@Param("level") TrackingLevel level, @Param("now") Instant now, Pageable page);
 }

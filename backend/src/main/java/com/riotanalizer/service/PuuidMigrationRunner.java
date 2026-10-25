@@ -2,6 +2,7 @@ package com.riotanalizer.service;
 
 import com.riotanalizer.client.RiotApiClient;
 import com.riotanalizer.domain.Player;
+import com.riotanalizer.domain.TrackingLevel;
 import com.riotanalizer.exception.NotFoundException;
 import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
@@ -64,7 +65,11 @@ public class PuuidMigrationRunner implements ApplicationRunner {
 
     /** Returns the number of players whose PUUID was translated. */
     int migratePlayers() {
-        List<Player> all = players.findAll();
+        // DISCOVERED players can number in the thousands; probing each would burn
+        // the rate limit at startup. Their PUUIDs are healed by the background
+        // match re-key (PuuidRekeyWorker translates every participant) or, at the
+        // latest, re-keyed on the fly when the scheduler first touches them.
+        List<Player> all = players.findByTrackingLevelNot(TrackingLevel.DISCOVERED);
         log.info("PUUID key check: probing {} stored player(s) against the current API key", all.size());
         int foreign = 0;
         int translated = 0;

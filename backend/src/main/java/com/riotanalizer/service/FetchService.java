@@ -6,110 +6,273 @@ import com.riotanalizer.config.RiotProperties;
 import com.riotanalizer.domain.MatchEntity;
 import com.riotanalizer.domain.Participant;
 import com.riotanalizer.domain.Player;
+import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.MatchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Gradually backfills a player's <em>current-season</em> match history.
+ * Keeps a player's <em>current-season</em> match history in sync, spending as
+ * few Riot calls as possible.
  *
- * <p>Match ids are requested with the Match-V5 {@code startTime} filter set to
- * {@code riot.current-season-start-epoch-ms}, so Riot only ever returns games
- * from the current season onward — the whole of a player's older history is
- * never fetched. Each cycle pulls at most {@code riot.fetch-batch-size} new
- * match details (the "slowly" throttle), walking that season-bounded id list
- * newest-first and skipping anything already stored. Brand-new games sit at the
- * top of the list, so they're always picked up first; the remaining budget then
- * advances a little deeper into the season. Over successive scheduled cycles the
- * whole current season (also bounded by {@code riot.max-history-matches}) is
- * pulled in without ever bursting past the rate limiter. Every match is saved in
- * its own transaction so a long backfill never holds a DB transaction across the
- * network.
+ * <p>Two modes, chosen from the player's stored sync state:
+ * <ul>
+ *   <li><b>Backfill</b> (season not fully stored yet): walk the season-bounded
+ *       match-id list newest-first (Match-V5 {@code startTime} =
+ *       {@code riot.current-season-start-epoch-ms}), skipping ids already in
+ *       the DB, fetching at most {@code riot.fetch-batch-size} new matches per
+ *       call. Where the previous call stopped is kept in {@code backfillOffset},
+ *       so the next call re-reads page 0 (new games) and then jumps there
+ *       instead of re-scanning the whole list. When the walk reaches the end of
+ *       the season with nothing missing, the player is marked
+ *       {@code backfillComplete}.</li>
+ *   <li><b>Head check</b> (backfill complete): one match-id call with
+ *       {@code startTime} = the newest match we know of. If every returned id is
+ *       already stored, the player is up to date — 1 call total instead of
+ *       re-walking the whole season. New ids are fetched; if there are more
+ *       than one batch, or a fetch fails, the player drops back to backfill so
+ *       nothing is skipped.</li>
+ * </ul>
+ *
+ * <p>Every match is saved in its own transaction (no DB transaction is held
+ * across the network), and each newly stored match is handed to
+ * {@link DiscoveryService}. The caller persists the player's updated sync state
+ * ({@code backfillComplete}, {@code newestMatchAt}).
  */
 @Service
 public class FetchService {
 
     private static final Logger log = LoggerFactory.getLogger(FetchService.class);
 
+    /** Outcome of one sync: how many matches were stored and whether the season is now complete. */
+    public record SyncResult(int stored, boolean backfillComplete) {
+    }
+
     private final RiotApiClient riot;
     private final MatchRepository matches;
     private final RiotProperties props;
+    private final DiscoveryService discovery;
 
-    public FetchService(RiotApiClient riot, MatchRepository matches, RiotProperties props) {
+    public FetchService(RiotApiClient riot, MatchRepository matches, RiotProperties props,
+                        DiscoveryService discovery) {
         this.riot = riot;
         this.matches = matches;
         this.props = props;
+        this.discovery = discovery;
     }
 
+    /** Sync and return the number of new matches stored. */
     public int fetchAndStore(Player player) {
-        String tag = player.getGameName() + "#" + player.getTagLine();
-        int budget = Math.max(1, props.getFetchBatchSize());
-        int pageSize = Math.min(100, Math.max(1, props.getMatchPageSize()));
+        return sync(player).stored();
+    }
+
+    /**
+     * Bring the player's stored history up to date (see class docs). Updates
+     * {@code backfillComplete} and {@code newestMatchAt} on {@code player};
+     * the caller saves it.
+     */
+    public SyncResult sync(Player player) {
+        if (player.isBackfillComplete() && player.getNewestMatchAt() != null) {
+            SyncResult head = headCheck(player);
+            if (head != null) {
+                return head;
+            }
+        }
+        return backfill(player);
+    }
+
+    /**
+     * One match-id call since the newest known match. Returns {@code null} when
+     * the gap is too big for a head check and a backfill walk is needed instead.
+     */
+    private SyncResult headCheck(Player player) {
+        String tag = tag(player);
+        int budget = budget();
+        int pageSize = pageSize();
+        long seasonStartSec = props.getCurrentSeasonStartEpochMs() / 1000L;
+        // Inclusive: the newest known match usually comes back too and is skipped
+        // as already stored. Overlap is harmless; a gap would lose games.
+        long sinceSec = Math.max(seasonStartSec, player.getNewestMatchAt().getEpochSecond());
+
+        List<String> ids = riot.getMatchIds(player.getPuuid(), 0, pageSize, sinceSec);
+        List<String> missing = new ArrayList<>();
+        for (String id : ids) {
+            if (!matches.existsById(id)) {
+                missing.add(id);
+            }
+        }
+        if (missing.isEmpty()) {
+            log.debug("[{}] up to date (head check: {} known id(s) since {})", tag, ids.size(),
+                    player.getNewestMatchAt());
+            return new SyncResult(0, true);
+        }
+        if (missing.size() > budget || ids.size() >= pageSize) {
+            log.info("[{}] {} new match(es) since last check — more than one batch, switching to backfill",
+                    tag, missing.size());
+            player.setBackfillComplete(false);
+            return null;
+        }
+
+        int stored = 0;
+        boolean failed = false;
+        for (String matchId : missing) {
+            if (store(player, matchId, tag, stored + 1, missing.size())) {
+                stored++;
+            } else {
+                failed = true;
+            }
+        }
+        updateNewest(player, ids.get(0));
+        if (failed) {
+            // Re-walk next time so the failed match is retried instead of skipped.
+            player.setBackfillComplete(false);
+        }
+        log.info("[{}] head check — {} new match(es) stored", tag, stored);
+        return new SyncResult(stored, player.isBackfillComplete());
+    }
+
+    private SyncResult backfill(Player player) {
+        String tag = tag(player);
+        int budget = budget();
+        int pageSize = pageSize();
         int maxStart = Math.max(pageSize, props.getMaxHistoryMatches());
         long seasonStartSec = props.getCurrentSeasonStartEpochMs() / 1000L;
+        int resumeAt = Math.max(0, player.getBackfillOffset());
         int stored = 0;
         int scanned = 0;
+        boolean budgetHit = false;
+        boolean reachedEnd = false;
+        Integer firstFailedPage = null;
+        String newestId = null;
         long startedAt = System.currentTimeMillis();
 
-        log.info("[{}] fetch start — will pull up to {} new match(es) this cycle", tag, budget);
+        log.info("[{}] backfill — will pull up to {} new match(es) this cycle (resuming near offset {})",
+                tag, budget, resumeAt);
 
-        // Walk the current-season match-id list (newest first; the startTime
-        // filter keeps Riot from returning anything older than the season start),
-        // fetching details only for matches not yet stored and stopping after
-        // `budget` new matches this cycle. Already-stored ids are skipped cheaply,
-        // so over successive cycles this advances steadily through the season.
-        for (int start = 0; start < maxStart && stored < budget; start += pageSize) {
-            List<String> ids = riot.getMatchIds(player.getPuuid(), start, pageSize, seasonStartSec);
-            if (ids.isEmpty()) {
-                log.debug("[{}] no match ids at offset {} — reached end of the current season", tag, start);
+        int start = 0;
+        while (true) {
+            if (start >= maxStart) {
+                reachedEnd = true; // safety cap: treat as the end of what we keep
                 break;
             }
+            List<String> ids = riot.getMatchIds(player.getPuuid(), start, pageSize, seasonStartSec);
+            if (ids.isEmpty()) {
+                reachedEnd = true;
+                break;
+            }
+            if (start == 0) {
+                newestId = ids.get(0);
+            }
             scanned += ids.size();
-            log.debug("[{}] scanned {} match id(s) at offset {} ({} stored so far this cycle)",
-                    tag, ids.size(), start, stored);
+            boolean pageHadKnownMatch = false;
             for (String matchId : ids) {
                 if (stored >= budget) {
+                    budgetHit = true;
                     break;
                 }
                 if (matches.existsById(matchId)) {
+                    pageHadKnownMatch = true;
                     continue;
                 }
-                try {
-                    JsonNode json = riot.getMatch(matchId);
-                    MatchEntity match = parse(matchId, json);
-                    if (match != null) {
-                        matches.save(match);
-                        stored++;
-                        log.info("[{}] +{} {} ({}/{} this cycle)",
-                                tag, matchId, describe(match, player.getPuuid()), stored, budget);
-                    }
-                } catch (Exception e) {
-                    log.warn("[{}] failed to fetch/persist match {}: {}", tag, matchId, e.getMessage());
+                if (store(player, matchId, tag, stored + 1, budget)) {
+                    stored++;
+                } else if (firstFailedPage == null) {
+                    firstFailedPage = start;
                 }
             }
-            // A short page means we've reached the oldest available match.
+            if (budgetHit) {
+                break; // resume on this page next time
+            }
             if (ids.size() < pageSize) {
-                log.debug("[{}] short page ({} < {}) — reached the oldest available match",
-                        tag, ids.size(), pageSize);
+                reachedEnd = true; // short page: oldest match of the season
                 break;
             }
+            int next = start + pageSize;
+            if (stored >= budget) {
+                budgetHit = true;
+                start = next; // this page is done; resume on the next one
+                break;
+            }
+            // Page 0 always runs (it catches games played since the last cycle);
+            // then jump past pages finished in earlier cycles. New games only push
+            // older ids to higher offsets, so one page of overlap is enough — as
+            // long as page 0 shows fewer than a page of new games.
+            if (start == 0 && pageHadKnownMatch && resumeAt - pageSize > next) {
+                next = resumeAt - pageSize;
+            }
+            start = next;
+        }
+
+        boolean complete = reachedEnd && firstFailedPage == null;
+        int cursor = complete ? 0 : (budgetHit ? start : 0);
+        if (firstFailedPage != null) {
+            cursor = Math.min(cursor, firstFailedPage);
+        }
+        player.setBackfillComplete(complete);
+        player.setBackfillOffset(cursor);
+        if (newestId != null) {
+            updateNewest(player, newestId);
         }
 
         long took = System.currentTimeMillis() - startedAt;
-        if (stored > 0) {
-            log.info("[{}] fetch done — {} new match(es) stored, {} id(s) scanned in {} ms",
-                    tag, stored, scanned, took);
-        } else {
-            log.info("[{}] fetch done — no new matches ({} id(s) scanned, all already stored) in {} ms",
-                    tag, scanned, took);
-        }
-        return stored;
+        log.info("[{}] backfill — {} new match(es) stored, {} id(s) scanned in {} ms{}",
+                tag, stored, scanned, took, complete ? "; season complete" : "");
+        return new SyncResult(stored, complete);
     }
 
-    /** Short one-line summary of the tracked player's line in a match, for logs. */
+    /** Fetch, persist and run discovery for one match. Returns false on failure. */
+    private boolean store(Player player, String matchId, String tag, int n, int of) {
+        try {
+            JsonNode json = riot.getMatch(matchId);
+            MatchEntity match = parse(matchId, json);
+            if (match == null) {
+                return false;
+            }
+            matches.save(match);
+            log.info("[{}] +{} {} ({}/{})", tag, matchId, describe(match, player.getPuuid()), n, of);
+            try {
+                discovery.onMatchStored(match, player);
+            } catch (Exception e) {
+                log.warn("[{}] discovery failed for match {}: {}", tag, matchId, e.getMessage());
+            }
+            return true;
+        } catch (RiotApiException e) {
+            if (e.isDecryptionError()) {
+                throw e; // stale PUUID: let the caller re-key and retry
+            }
+            log.warn("[{}] failed to fetch/persist match {}: {}", tag, matchId, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            log.warn("[{}] failed to fetch/persist match {}: {}", tag, matchId, e.getMessage());
+            return false;
+        }
+    }
+
+    private void updateNewest(Player player, String newestId) {
+        matches.findGameCreation(newestId)
+                .map(Instant::ofEpochMilli)
+                .filter(t -> player.getNewestMatchAt() == null || t.isAfter(player.getNewestMatchAt()))
+                .ifPresent(player::setNewestMatchAt);
+    }
+
+    private int budget() {
+        return Math.max(1, props.getFetchBatchSize());
+    }
+
+    private int pageSize() {
+        return Math.min(100, Math.max(1, props.getMatchPageSize()));
+    }
+
+    private static String tag(Player player) {
+        return player.getGameName() + "#" + player.getTagLine();
+    }
+
+    /** Short one-line summary of the player's line in a match, for logs. */
     private String describe(MatchEntity match, String puuid) {
         for (Participant p : match.getParticipants()) {
             if (puuid.equals(p.getPuuid())) {

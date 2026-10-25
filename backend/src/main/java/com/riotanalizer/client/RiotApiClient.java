@@ -24,7 +24,8 @@ import java.util.function.Supplier;
 
 /**
  * Thin wrapper over the Riot API. Every outbound call first acquires a token
- * from the shared {@link RiotRateLimiter}.
+ * from the shared {@link RiotRateLimiter}, at the priority of the calling
+ * thread's {@link com.riotanalizer.ratelimit.FetchContext} (REFRESH if unset).
  */
 @Component
 public class RiotApiClient {

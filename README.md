@@ -40,7 +40,8 @@ Then set at minimum `RIOT_API_KEY` (required — nothing works without it). The 
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — database credentials. The backend's JDBC URL is assembled from these automatically as `jdbc:postgresql://db:5432/<POSTGRES_DB>`.
 - `RIOT_CURRENT_SEASON_START_EPOCH_MS` — epoch milliseconds marking the start of the current season (default `1736380800000`, i.e. 2025-01-09). Bump this when a new season begins.
 - `RIOT_INITIAL_PLAYER` — optionally a `gameName#tagLine` to auto-track on startup. Leave it blank to add players through the UI instead.
-- `RIOT_FETCH_INTERVAL_MS` — how often the scheduler runs, in milliseconds (default `600000`, i.e. 10 minutes).
+- `RIOT_SCHEDULER_TICK_MS` — how often the scheduler wakes up to look for players that are due (default `15000`). Each player is only fetched when its own `next_check_at` is due (see below).
+- `RIOT_DISCOVERY_MAX_DEPTH` — how far discovery spreads from tracked players (default `1`; `-1` = unbounded, `0` = off). `RIOT_DISCOVERY_MAX_PLAYERS` caps the number of discovered players (default `0` = no cap).
 
 `.env` is git-ignored — keep your key out of version control.
 
@@ -78,7 +79,31 @@ The list of tracked players is available at `GET /api/tracked`.
 
 Riot development keys are capped at **20 requests per second** and **100 requests per 120 seconds**, and those limits apply across *all* calls the app makes. The backend enforces this with a shared limiter built from two token buckets; every outbound Riot request must acquire a token from both buckets first, blocking until tokens are available. This means the scheduler can never burst past the limit — it simply waits.
 
-The scheduler itself runs on a fixed delay (`RIOT_FETCH_INTERVAL_MS`, default 10 minutes). On each run, for every tracked player it refreshes account/summoner/rank data, asks for the newest match ids since the last one it stored, fetches and persists any missing match details (all 10 participants each), and refreshes the live-game cache — all through the rate limiter. Because dev-key throughput is modest, the first fill of a fresh database can take a while; subsequent runs only fetch the delta.
+### Priorities
+
+The limiter is priority-aware: when a permit frees up it goes to the most important waiter, in this order:
+
+1. **REFRESH** — anything a user is waiting for (manual refresh, track, search, live lookup)
+2. **ANALYSIS** — a match timeline someone opened
+3. **TRACKED_HISTORY** — keeping tracked players' history fresh
+4. **DISCOVERED_HISTORY** — history of players met in tracked players' games, spare budget only
+
+Background priorities also leave part of the 2-minute window free (`RIOT_RATE_LIMIT_TRACKED_RESERVE`, `RIOT_RATE_LIMIT_DISCOVERED_RESERVE`) so user requests start immediately.
+
+### Tracking levels and discovery
+
+Every stored player has a `tracking_level`: `TRACKED` (chosen by a user), `DISCOVERED` (appeared in a stored match of a tracked player — or, with a higher `RIOT_DISCOVERY_MAX_DEPTH`, of another discovered player) or `NONE` (known but not fetched in the background). Discovered players get their current season backfilled too, but only after every tracked player is up to date, closest discovery depth first.
+
+### Staleness: when is a player fetched?
+
+The scheduler wakes every `RIOT_SCHEDULER_TICK_MS` and picks the most important player whose `next_check_at` is due (tracked first, then discovered), one at a time. A check costs as few calls as possible:
+
+- **Backfill** (season not fully stored yet): walk the season's match ids newest-first, fetching up to `RIOT_FETCH_BATCH_SIZE` missing matches per check, until the whole season is stored (`backfill_complete`).
+- **Head check** (afterwards): *one* match-id call since the newest known match. If nothing new comes back, the player is up to date.
+- **Profile/rank** (2 calls) only after new games, or when older than 6 h (tracked) / 7 days (discovered).
+- **Live game** (1 call) for tracked players only.
+
+`next_check_at` then follows recent activity — a tracked player who played within the hour is checked every 5 minutes (4 while in a live game), one idle for weeks every 12 hours; discovered players every 2 h – 3 days (see `CheckCadence`).
 
 ## Local development without Docker
 

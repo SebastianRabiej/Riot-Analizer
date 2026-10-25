@@ -52,7 +52,9 @@ riot:
   platform-host: ${RIOT_PLATFORM_HOST:https://eun1.api.riotgames.com}
   regional-host: ${RIOT_REGIONAL_HOST:https://europe.api.riotgames.com}
   current-season-start-epoch-ms: ${RIOT_CURRENT_SEASON_START_EPOCH_MS:1767225600000}
-  fetch-interval-ms: ${RIOT_FETCH_INTERVAL_MS:600000}
+  # Scheduler wake-up; each player is only fetched when its own next_check_at
+  # (derived from how recently they played) is due. See ScheduledFetcher.
+  scheduler-tick-ms: ${RIOT_SCHEDULER_TICK_MS:15000}
   initial-player: ${RIOT_INITIAL_PLAYER:}
   match-page-size: ${RIOT_MATCH_PAGE_SIZE:100}
   fetch-batch-size: ${RIOT_FETCH_BATCH_SIZE:25}
@@ -61,3 +63,16 @@ riot:
   # another Riot application (see PuuidMigrationRunner / PuuidRekeyWorker).
   puuid-rekey-batch-size: ${RIOT_PUUID_REKEY_BATCH_SIZE:20}
   puuid-rekey-interval-ms: ${RIOT_PUUID_REKEY_INTERVAL_MS:5000}
+  # Players met in tracked players' matches become DISCOVERED and get their
+  # season history fetched with spare budget only. max-depth: 1 = only people
+  # met in tracked players' games, N = N hops, -1 = unbounded, 0 = off.
+  discovery-max-depth: ${RIOT_DISCOVERY_MAX_DEPTH:1}
+  discovery-max-players: ${RIOT_DISCOVERY_MAX_PLAYERS:0}
+  # Riot API limits (dev/personal key defaults) and the long-window permits
+  # background work leaves free for user-facing requests.
+  rate-limit-short-requests: ${RIOT_RATE_LIMIT_SHORT_REQUESTS:20}
+  rate-limit-short-window-ms: ${RIOT_RATE_LIMIT_SHORT_WINDOW_MS:1000}
+  rate-limit-long-requests: ${RIOT_RATE_LIMIT_LONG_REQUESTS:100}
+  rate-limit-long-window-ms: ${RIOT_RATE_LIMIT_LONG_WINDOW_MS:120000}
+  rate-limit-tracked-reserve: ${RIOT_RATE_LIMIT_TRACKED_RESERVE:10}
+  rate-limit-discovered-reserve: ${RIOT_RATE_LIMIT_DISCOVERED_RESERVE:25}

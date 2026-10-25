@@ -2,6 +2,8 @@ package com.riotanalizer.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -37,8 +39,30 @@ public class Player {
 
     private Instant lastFetched;
 
+    /** How (and whether) the background scheduler fetches this player. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracking_level", nullable = false, length = 16)
+    private TrackingLevel trackingLevel = TrackingLevel.NONE;
+
+    /**
+     * Discovery hops from a TRACKED player: 0 = tracked, 1 = met in a tracked
+     * player's match, 2 = met in a depth-1 player's match… NULL for NONE.
+     */
+    private Integer discoveryDepth;
+
+    /** When the scheduler should look at this player again; NULL = due now. */
+    private Instant nextCheckAt;
+
+    /** Creation time of the newest match in the player's own Riot match list, as of the last sync. */
+    private Instant newestMatchAt;
+
+    /** The whole current season has been walked and stored; only the cheap head check remains. */
     @Column(nullable = false)
-    private boolean tracked;
+    private boolean backfillComplete;
+
+    /** Match-list offset where the unfinished backfill resumes (0 when complete). */
+    @Column(nullable = false)
+    private int backfillOffset;
 
     public String getPuuid() {
         return puuid;
@@ -176,11 +200,73 @@ public class Player {
         this.lastFetched = lastFetched;
     }
 
-    public boolean isTracked() {
-        return tracked;
+    public TrackingLevel getTrackingLevel() {
+        return trackingLevel;
     }
 
+    public void setTrackingLevel(TrackingLevel trackingLevel) {
+        this.trackingLevel = trackingLevel == null ? TrackingLevel.NONE : trackingLevel;
+    }
+
+    /** Explicitly tracked by a user. */
+    public boolean isTracked() {
+        return trackingLevel == TrackingLevel.TRACKED;
+    }
+
+    /**
+     * Explicitly track ({@code true}: TRACKED, depth 0, due now) or untrack
+     * ({@code false}: back to NONE, no longer fetched in the background).
+     */
     public void setTracked(boolean tracked) {
-        this.tracked = tracked;
+        if (tracked) {
+            if (trackingLevel != TrackingLevel.TRACKED) {
+                nextCheckAt = null;
+            }
+            trackingLevel = TrackingLevel.TRACKED;
+            discoveryDepth = 0;
+        } else if (trackingLevel == TrackingLevel.TRACKED) {
+            trackingLevel = TrackingLevel.NONE;
+            discoveryDepth = null;
+        }
+    }
+
+    public Integer getDiscoveryDepth() {
+        return discoveryDepth;
+    }
+
+    public void setDiscoveryDepth(Integer discoveryDepth) {
+        this.discoveryDepth = discoveryDepth;
+    }
+
+    public Instant getNextCheckAt() {
+        return nextCheckAt;
+    }
+
+    public void setNextCheckAt(Instant nextCheckAt) {
+        this.nextCheckAt = nextCheckAt;
+    }
+
+    public Instant getNewestMatchAt() {
+        return newestMatchAt;
+    }
+
+    public void setNewestMatchAt(Instant newestMatchAt) {
+        this.newestMatchAt = newestMatchAt;
+    }
+
+    public boolean isBackfillComplete() {
+        return backfillComplete;
+    }
+
+    public void setBackfillComplete(boolean backfillComplete) {
+        this.backfillComplete = backfillComplete;
+    }
+
+    public int getBackfillOffset() {
+        return backfillOffset;
+    }
+
+    public void setBackfillOffset(int backfillOffset) {
+        this.backfillOffset = backfillOffset;
     }
 }

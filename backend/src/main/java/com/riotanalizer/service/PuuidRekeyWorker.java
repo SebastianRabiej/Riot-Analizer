@@ -5,6 +5,8 @@ import com.riotanalizer.client.RiotApiClient;
 import com.riotanalizer.exception.NotFoundException;
 import com.riotanalizer.exception.RateLimitedException;
 import com.riotanalizer.exception.RiotApiException;
+import com.riotanalizer.ratelimit.FetchContext;
+import com.riotanalizer.ratelimit.FetchPriority;
 import com.riotanalizer.repository.PuuidRekeyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +48,11 @@ public class PuuidRekeyWorker {
         if (!gate.awaitOpen()) {
             return;
         }
+        // Background maintenance: same priority as tracked-player history.
+        FetchContext.run(FetchPriority.TRACKED_HISTORY, this::drainBatch);
+    }
+
+    private void drainBatch() {
         List<String> batch = rekey.nextPending(batchSize);
         if (batch.isEmpty()) {
             return;

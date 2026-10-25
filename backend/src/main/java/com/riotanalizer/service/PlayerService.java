@@ -5,6 +5,7 @@ import com.riotanalizer.client.dto.AccountDto;
 import com.riotanalizer.client.dto.LeagueEntryDto;
 import com.riotanalizer.client.dto.SummonerDto;
 import com.riotanalizer.domain.Player;
+import com.riotanalizer.domain.TrackingLevel;
 import com.riotanalizer.dto.PlayerDto;
 import com.riotanalizer.dto.RankDto;
 import com.riotanalizer.exception.NotFoundException;
@@ -82,7 +83,11 @@ public class PlayerService {
                 throw e;
             }
             Player rekeyed = playerRekey.rekey(player).orElseThrow(() -> e);
-            rekeyed.setTracked(rekeyed.isTracked() || player.isTracked());
+            // The DB merge keeps the stronger level; this covers an in-memory
+            // track() that hasn't been saved yet.
+            if (player.isTracked()) {
+                rekeyed.setTracked(true);
+            }
             refreshProfileFields(rekeyed);
             return players.save(rekeyed);
         }
@@ -127,7 +132,8 @@ public class PlayerService {
     }
 
     /**
-     * Manual refresh: profile + full current-season match backfill.
+     * Manual refresh: profile + match sync (a 1-call head check once the season
+     * is backfilled, otherwise the next backfill batch).
      *
      * <p>Deliberately NOT {@code @Transactional}: the backfill can page through
      * hundreds of rate-limited Riot calls, and wrapping that in a single
@@ -136,8 +142,8 @@ public class PlayerService {
      */
     public Player refresh(String gameName, String tagLine) {
         Player player = refreshProfile(getOrRegister(gameName, tagLine));
-        fetchService.fetchAndStore(player);
-        return player;
+        fetchService.sync(player);
+        return save(player);
     }
 
     /**
@@ -151,14 +157,15 @@ public class PlayerService {
         Player player = getOrRegister(gameName, tagLine);
         player.setTracked(true);
         player = refreshProfile(player);
-        fetchService.fetchAndStore(player);
-        return player;
+        fetchService.sync(player);
+        return save(player);
     }
 
     /**
-     * Remove a player from the tracked set. Their stored matches are kept (so
-     * head-to-head and past scoreboards still work); they simply stop being
-     * refreshed by the scheduler.
+     * Remove a player from the tracked set (back to NONE). Their stored matches
+     * are kept (so head-to-head and past scoreboards still work); they simply
+     * stop being refreshed by the scheduler. If they show up in a tracked
+     * player's new match later, discovery may pick them up as DISCOVERED.
      */
     @Transactional
     public Player untrack(String gameName, String tagLine) {
@@ -169,7 +176,13 @@ public class PlayerService {
 
     @Transactional(readOnly = true)
     public List<Player> trackedPlayers() {
-        return players.findByTrackedTrue();
+        return players.findByTrackingLevel(TrackingLevel.TRACKED);
+    }
+
+    /** Persist scheduling / sync state changes. */
+    @Transactional
+    public Player save(Player player) {
+        return players.save(player);
     }
 
     public PlayerDto toDto(Player p) {

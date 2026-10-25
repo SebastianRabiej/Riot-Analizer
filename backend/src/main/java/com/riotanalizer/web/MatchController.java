@@ -2,6 +2,8 @@ package com.riotanalizer.web;
 
 import com.riotanalizer.dto.MatchDetailDto;
 import com.riotanalizer.dto.TimelineAnalysisDto;
+import com.riotanalizer.ratelimit.FetchContext;
+import com.riotanalizer.ratelimit.FetchPriority;
 import com.riotanalizer.service.MatchDetailService;
 import com.riotanalizer.service.MatchTimelineService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,9 +30,12 @@ public class MatchController {
         return matchDetailService.detail(matchId);
     }
 
-    /** Distilled timeline for a match (kills, gold/xp/cs per minute, objectives). */
+    /**
+     * Distilled timeline for a match (kills, gold/xp/cs per minute, objectives).
+     * A cache miss costs one Riot call, queued at {@link FetchPriority#ANALYSIS}.
+     */
     @GetMapping("/matches/{matchId}/analysis")
     public TimelineAnalysisDto analysis(@PathVariable String matchId) {
-        return matchTimelineService.analysis(matchId);
+        return FetchContext.call(FetchPriority.ANALYSIS, () -> matchTimelineService.analysis(matchId));
     }
 }
