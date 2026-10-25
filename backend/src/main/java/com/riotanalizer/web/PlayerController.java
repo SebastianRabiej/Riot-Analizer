@@ -2,6 +2,7 @@ package com.riotanalizer.web;
 
 import com.riotanalizer.domain.Player;
 import com.riotanalizer.dto.CarryIndexDto;
+import com.riotanalizer.dto.DiscoveredPageDto;
 import com.riotanalizer.dto.ChampionMatchupSummaryDto;
 import com.riotanalizer.dto.GameLengthStatsDto;
 import com.riotanalizer.dto.HeadToHeadDto;
@@ -245,5 +246,13 @@ public class PlayerController {
     @GetMapping("/tracked")
     public List<PlayerDto> tracked() {
         return playerService.trackedPlayers().stream().map(playerService::toDto).toList();
+    }
+
+    /** Players found in tracked players' matches and fetched in the background, paged. */
+    @GetMapping("/discovered")
+    public DiscoveredPageDto discovered(@RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "50") int size,
+                                       @RequestParam(required = false) String q) {
+        return playerService.discovered(page, size, q);
     }
 }

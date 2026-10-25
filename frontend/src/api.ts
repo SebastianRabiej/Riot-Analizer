@@ -1,5 +1,6 @@
 import type {
   PlayerDto,
+  DiscoveredPageDto,
   PlayerStatsDto,
   MatchSummaryDto,
   LiveMatchDto,
@@ -235,6 +236,13 @@ export function refresh(gameName: string, tagLine: string): Promise<PlayerDto> {
 
 export function getTracked(): Promise<PlayerDto[]> {
   return request<PlayerDto[]>('/tracked');
+}
+
+/** Players discovered from tracked players' matches (paged, closest first). */
+export function getDiscovered(page = 0, size = 50, q?: string): Promise<DiscoveredPageDto> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (q && q.trim()) params.set('q', q.trim());
+  return request<DiscoveredPageDto>(`/discovered?${params.toString()}`);
 }
 
 export function getMatchDetail(matchId: string): Promise<MatchDetailDto> {

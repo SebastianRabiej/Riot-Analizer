@@ -2,6 +2,7 @@ package com.riotanalizer.repository;
 
 import com.riotanalizer.domain.Player;
 import com.riotanalizer.domain.TrackingLevel;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,13 @@ public interface PlayerRepository extends JpaRepository<Player, String> {
     List<Player> findByTrackingLevelNot(TrackingLevel trackingLevel);
 
     long countByTrackingLevel(TrackingLevel trackingLevel);
+
+    long countByTrackingLevelAndBackfillCompleteTrue(TrackingLevel trackingLevel);
+
+    Page<Player> findByTrackingLevel(TrackingLevel trackingLevel, Pageable page);
+
+    Page<Player> findByTrackingLevelAndGameNameContainingIgnoreCase(TrackingLevel trackingLevel, String gameName,
+                                                                   Pageable page);
 
     /**
      * Players of one tracking level that are due for a check, closest to the

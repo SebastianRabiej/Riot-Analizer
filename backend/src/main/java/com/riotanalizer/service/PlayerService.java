@@ -6,11 +6,15 @@ import com.riotanalizer.client.dto.LeagueEntryDto;
 import com.riotanalizer.client.dto.SummonerDto;
 import com.riotanalizer.domain.Player;
 import com.riotanalizer.domain.TrackingLevel;
+import com.riotanalizer.dto.DiscoveredPageDto;
 import com.riotanalizer.dto.PlayerDto;
 import com.riotanalizer.dto.RankDto;
 import com.riotanalizer.exception.NotFoundException;
 import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -195,8 +199,40 @@ public class PlayerService {
                 soloRank(p),
                 flexRank(p),
                 p.isTracked(),
-                p.getLastFetched() == null ? null : p.getLastFetched().toString()
+                iso(p.getLastFetched()),
+                p.getTrackingLevel().name(),
+                p.getDiscoveryDepth(),
+                p.isBackfillComplete(),
+                iso(p.getNewestMatchAt()),
+                iso(p.getNextCheckAt())
         );
+    }
+
+    private static String iso(Instant t) {
+        return t == null ? null : t.toString();
+    }
+
+    /**
+     * A page of DISCOVERED players, closest discovery depth first, optionally
+     * filtered by a case-insensitive Riot ID name fragment.
+     */
+    @Transactional(readOnly = true)
+    public DiscoveredPageDto discovered(int page, int size, String query) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+        PageRequest request = PageRequest.of(safePage, safeSize,
+                Sort.by(Sort.Order.asc("discoveryDepth"), Sort.Order.asc("gameName"), Sort.Order.asc("puuid")));
+        Page<Player> result = (query == null || query.isBlank())
+                ? players.findByTrackingLevel(TrackingLevel.DISCOVERED, request)
+                : players.findByTrackingLevelAndGameNameContainingIgnoreCase(
+                        TrackingLevel.DISCOVERED, query.trim(), request);
+        return new DiscoveredPageDto(
+                players.countByTrackingLevel(TrackingLevel.DISCOVERED),
+                players.countByTrackingLevelAndBackfillCompleteTrue(TrackingLevel.DISCOVERED),
+                result.getTotalElements(),
+                safePage,
+                safeSize,
+                result.getContent().stream().map(this::toDto).toList());
     }
 
     private RankDto soloRank(Player p) {

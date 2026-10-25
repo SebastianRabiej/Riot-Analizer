@@ -21,6 +21,25 @@ export interface PlayerDto {
   flexRank: RankDto | null;
   tracked: boolean;
   lastFetched: string | null; // ISO
+  /** TRACKED (chosen by a user), DISCOVERED (met in a tracked player's match) or NONE. */
+  trackingLevel?: TrackingLevel;
+  /** Hops from a tracked player: 0 = tracked, 1 = met in a tracked player's game… */
+  discoveryDepth?: number | null;
+  /** Whole current season stored; from now on only new games are fetched. */
+  backfillComplete?: boolean;
+  newestMatchAt?: string | null; // ISO, newest game in their match list
+  nextCheckAt?: string | null; // ISO, when the scheduler looks at them next (null = due now)
+}
+
+export type TrackingLevel = 'TRACKED' | 'DISCOVERED' | 'NONE';
+
+export interface DiscoveredPageDto {
+  total: number;
+  seasonSynced: number;
+  matching: number;
+  page: number;
+  size: number;
+  players: PlayerDto[];
 }
 
 export interface ChampionStatDto {
