@@ -1,7 +1,6 @@
 package com.riotanalizer.service;
 
 import com.riotanalizer.client.RiotApiClient;
-import com.riotanalizer.client.dto.AccountDto;
 import com.riotanalizer.domain.Player;
 import com.riotanalizer.exception.NotFoundException;
 import com.riotanalizer.exception.RiotApiException;
@@ -22,13 +21,14 @@ import java.util.List;
  *
  * <p>Riot encrypts PUUIDs per application, so PUUIDs stored while using a
  * development key are rejected (400 "Exception decrypting") once a personal or
- * production key is configured. For every stored player this probes the PUUID;
- * a rejected one is re-resolved by Riot ID with the current key and every
- * stored reference is translated. When that happens, all stored matches are
- * also queued so {@link PuuidRekeyWorker} can re-key the other participants.
+ * production key is configured. Every stored player's PUUID is probed with
+ * SUMMONER-V4 by-puuid (the first call every refresh makes); a rejected one is
+ * re-keyed via {@link PlayerRekeyService}. When that happens all stored
+ * matches are queued so {@link PuuidRekeyWorker} re-keys the other participants.
  *
  * <p>Runs before every other {@link ApplicationRunner} and keeps
  * {@link PuuidMigrationGate} closed until done, so the scheduler waits for it.
+ * Anything this misses is still healed on the fly by {@link PlayerService}.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -38,13 +38,15 @@ public class PuuidMigrationRunner implements ApplicationRunner {
 
     private final PlayerRepository players;
     private final PuuidRekeyRepository rekey;
+    private final PlayerRekeyService playerRekey;
     private final RiotApiClient riot;
     private final PuuidMigrationGate gate;
 
     public PuuidMigrationRunner(PlayerRepository players, PuuidRekeyRepository rekey,
-                                RiotApiClient riot, PuuidMigrationGate gate) {
+                                PlayerRekeyService playerRekey, RiotApiClient riot, PuuidMigrationGate gate) {
         this.players = players;
         this.rekey = rekey;
+        this.playerRekey = playerRekey;
         this.riot = riot;
         this.gate = gate;
     }
@@ -63,36 +65,26 @@ public class PuuidMigrationRunner implements ApplicationRunner {
     /** Returns the number of players whose PUUID was translated. */
     int migratePlayers() {
         List<Player> all = players.findAll();
+        log.info("PUUID key check: probing {} stored player(s) against the current API key", all.size());
         int foreign = 0;
         int translated = 0;
         for (Player p : all) {
-            String oldPuuid = p.getPuuid();
+            String tag = p.getGameName() + "#" + p.getTagLine();
             if (!issuedForAnotherKey(p)) {
+                log.info("PUUID key check: [{}] OK", tag);
                 continue;
             }
             foreign++;
-            String tag = p.getGameName() + "#" + p.getTagLine();
-            if (p.getGameName() == null || p.getTagLine() == null) {
-                log.warn("[{}] PUUID belongs to another API key and no Riot ID is stored; "
-                        + "it will be re-keyed from match data if possible", tag);
-                continue;
-            }
-            try {
-                AccountDto account = riot.getAccountByRiotId(p.getGameName(), p.getTagLine());
-                rekey.translate(oldPuuid, account.puuid());
-                rekey.updateRiotId(account.puuid(), account.gameName(), account.tagLine());
+            log.warn("PUUID key check: [{}] rejected by Riot (issued for another API key), re-keying", tag);
+            if (playerRekey.rekey(p).isPresent()) {
                 translated++;
-                log.info("[{}] PUUID re-keyed for the current API key", tag);
-            } catch (NotFoundException e) {
-                log.warn("[{}] PUUID belongs to another API key and the Riot ID no longer resolves "
-                        + "(renamed?); it will be re-keyed from match data if possible", tag);
             }
         }
         if (foreign > 0) {
             int queued = rekey.enqueueAllMatches();
-            log.warn("API key belongs to a different Riot application than the stored data: "
-                            + "re-keyed {}/{} player(s); queued {} match(es) to re-key the remaining participants "
-                            + "in the background", translated, foreign, queued);
+            log.warn("PUUID key check: API key belongs to a different Riot application than the stored data. "
+                    + "Re-keyed {}/{} player(s); queued {} more match(es) to re-key the other participants "
+                    + "in the background", translated, foreign, queued);
         } else {
             log.info("PUUID key check: all {} stored player(s) match the current API key", all.size());
         }
@@ -105,7 +97,7 @@ public class PuuidMigrationRunner implements ApplicationRunner {
      */
     private boolean issuedForAnotherKey(Player p) {
         try {
-            riot.getAccountByPuuid(p.getPuuid());
+            riot.getSummonerByPuuid(p.getPuuid());
             return false;
         } catch (NotFoundException e) {
             return false;

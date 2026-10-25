@@ -8,6 +8,7 @@ import com.riotanalizer.domain.Player;
 import com.riotanalizer.dto.PlayerDto;
 import com.riotanalizer.dto.RankDto;
 import com.riotanalizer.exception.NotFoundException;
+import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +25,14 @@ public class PlayerService {
     private final RiotApiClient riot;
     private final PlayerRepository players;
     private final FetchService fetchService;
+    private final PlayerRekeyService playerRekey;
 
-    public PlayerService(RiotApiClient riot, PlayerRepository players, FetchService fetchService) {
+    public PlayerService(RiotApiClient riot, PlayerRepository players, FetchService fetchService,
+                         PlayerRekeyService playerRekey) {
         this.riot = riot;
         this.players = players;
         this.fetchService = fetchService;
+        this.playerRekey = playerRekey;
     }
 
     /**
@@ -64,12 +68,24 @@ public class PlayerService {
     }
 
     /**
-     * Refresh summoner + rank info from Riot and persist.
+     * Refresh summoner + rank info from Riot and persist. If Riot rejects the
+     * stored PUUID as issued for another API key, the player is re-keyed first.
+     * Always continue with the returned player — its PUUID may have changed.
      */
     @Transactional
     public Player refreshProfile(Player player) {
-        refreshProfileFields(player);
-        return players.save(player);
+        try {
+            refreshProfileFields(player);
+            return players.save(player);
+        } catch (RiotApiException e) {
+            if (!e.isDecryptionError()) {
+                throw e;
+            }
+            Player rekeyed = playerRekey.rekey(player).orElseThrow(() -> e);
+            rekeyed.setTracked(rekeyed.isTracked() || player.isTracked());
+            refreshProfileFields(rekeyed);
+            return players.save(rekeyed);
+        }
     }
 
     private void refreshProfileFields(Player player) {
@@ -119,8 +135,7 @@ public class PlayerService {
      * and each match are persisted in their own transactions instead.
      */
     public Player refresh(String gameName, String tagLine) {
-        Player player = getOrRegister(gameName, tagLine);
-        refreshProfile(player);
+        Player player = refreshProfile(getOrRegister(gameName, tagLine));
         fetchService.fetchAndStore(player);
         return player;
     }
@@ -135,7 +150,7 @@ public class PlayerService {
     public Player track(String gameName, String tagLine) {
         Player player = getOrRegister(gameName, tagLine);
         player.setTracked(true);
-        refreshProfile(player);
+        player = refreshProfile(player);
         fetchService.fetchAndStore(player);
         return player;
     }

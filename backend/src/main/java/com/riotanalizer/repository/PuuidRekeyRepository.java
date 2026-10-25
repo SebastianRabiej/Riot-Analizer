@@ -96,6 +96,16 @@ public class PuuidRekeyRepository {
                 """);
     }
 
+    /** Queue every stored match the given player took part in. Returns how many were newly queued. */
+    @Transactional
+    public int enqueueMatchesOf(String puuid) {
+        return jdbc.update("""
+                INSERT INTO puuid_rekey_pending (match_id)
+                SELECT DISTINCT match_id FROM participant WHERE puuid = ?
+                ON CONFLICT (match_id) DO NOTHING
+                """, puuid);
+    }
+
     public List<String> nextPending(int limit) {
         return jdbc.queryForList(
                 "SELECT match_id FROM puuid_rekey_pending ORDER BY enqueued_at, match_id LIMIT ?",

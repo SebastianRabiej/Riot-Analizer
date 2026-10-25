@@ -1,7 +1,7 @@
 package com.riotanalizer.service;
 
 import com.riotanalizer.client.RiotApiClient;
-import com.riotanalizer.client.dto.AccountDto;
+import com.riotanalizer.client.dto.SummonerDto;
 import com.riotanalizer.domain.Player;
 import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
@@ -9,11 +9,11 @@ import com.riotanalizer.repository.PuuidRekeyRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,11 +23,12 @@ class PuuidMigrationRunnerTest {
 
     private final PlayerRepository players = mock(PlayerRepository.class);
     private final PuuidRekeyRepository rekey = mock(PuuidRekeyRepository.class);
+    private final PlayerRekeyService playerRekey = mock(PlayerRekeyService.class);
     private final RiotApiClient riot = mock(RiotApiClient.class);
     private final PuuidMigrationGate gate = new PuuidMigrationGate();
-    private final PuuidMigrationRunner runner = new PuuidMigrationRunner(players, rekey, riot, gate);
+    private final PuuidMigrationRunner runner = new PuuidMigrationRunner(players, rekey, playerRekey, riot, gate);
 
-    private static Player player(String puuid, String name, String tag) {
+    static Player player(String puuid, String name, String tag) {
         Player p = new Player();
         p.setPuuid(puuid);
         p.setGameName(name);
@@ -35,44 +36,45 @@ class PuuidMigrationRunnerTest {
         return p;
     }
 
-    private static RiotApiException decryptError() {
+    static RiotApiException decryptError() {
         return new RiotApiException(400, "Riot API error: 400", "Bad Request - Exception decrypting old");
     }
 
     @Test
-    void translatesPlayersWhosePuuidBelongsToAnotherKey() {
-        when(players.findAll()).thenReturn(List.of(player("old", "Foo", "EUNE"), player("fine", "Bar", "EUNE")));
-        when(riot.getAccountByPuuid("old")).thenThrow(decryptError());
-        when(riot.getAccountByPuuid("fine")).thenReturn(new AccountDto("fine", "Bar", "EUNE"));
-        when(riot.getAccountByRiotId("Foo", "EUNE")).thenReturn(new AccountDto("new", "Foo", "EUNE"));
+    void rekeysPlayersWhosePuuidBelongsToAnotherKey() {
+        Player old = player("old", "Foo", "EUNE");
+        Player fine = player("fine", "Bar", "EUNE");
+        when(players.findAll()).thenReturn(List.of(old, fine));
+        when(riot.getSummonerByPuuid("old")).thenThrow(decryptError());
+        when(riot.getSummonerByPuuid("fine")).thenReturn(new SummonerDto("sid", "fine", 1, 1L));
+        when(playerRekey.rekey(old)).thenReturn(Optional.of(player("new", "Foo", "EUNE")));
 
         assertEquals(1, runner.migratePlayers());
 
-        verify(rekey).translate("old", "new");
-        verify(rekey).updateRiotId("new", "Foo", "EUNE");
-        verify(rekey, never()).translate(eq("fine"), anyString());
+        verify(playerRekey).rekey(old);
+        verify(playerRekey, never()).rekey(fine);
         verify(rekey).enqueueAllMatches();
     }
 
     @Test
     void doesNothingWhenAllPuuidsMatchTheKey() {
         when(players.findAll()).thenReturn(List.of(player("fine", "Bar", "EUNE")));
-        when(riot.getAccountByPuuid("fine")).thenReturn(new AccountDto("fine", "Bar", "EUNE"));
+        when(riot.getSummonerByPuuid("fine")).thenReturn(new SummonerDto("sid", "fine", 1, 1L));
 
         assertEquals(0, runner.migratePlayers());
 
-        verify(rekey, never()).translate(anyString(), anyString());
+        verify(playerRekey, never()).rekey(any());
         verify(rekey, never()).enqueueAllMatches();
     }
 
     @Test
     void otherRiotErrorsAbortButStillOpenTheGate() {
         when(players.findAll()).thenReturn(List.of(player("x", "Foo", "EUNE")));
-        when(riot.getAccountByPuuid("x")).thenThrow(new RiotApiException(403, "forbidden", "Forbidden"));
+        when(riot.getSummonerByPuuid("x")).thenThrow(new RiotApiException(403, "forbidden", "Forbidden"));
 
         runner.run(null);
 
         assertTrue(gate.isOpen());
-        verify(rekey, never()).translate(anyString(), anyString());
+        verify(playerRekey, never()).rekey(any());
     }
 }

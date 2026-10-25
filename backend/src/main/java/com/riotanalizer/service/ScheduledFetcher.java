@@ -41,9 +41,11 @@ public class ScheduledFetcher {
             return;
         }
         log.info("Scheduled fetch for {} tracked player(s)", tracked.size());
-        for (Player player : tracked) {
+        for (Player stale : tracked) {
+            Player player = stale;
             try {
-                playerService.refreshProfile(player);
+                // May re-key the player (new PUUID) if the API key changed application.
+                player = playerService.refreshProfile(stale);
                 int stored = fetchService.fetchAndStore(player);
                 liveGameService.refresh(player.getPuuid());
                 log.info("Fetched {}#{}: {} new match(es)",
