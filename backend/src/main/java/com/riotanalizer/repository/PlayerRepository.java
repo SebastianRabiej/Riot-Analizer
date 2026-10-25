@@ -56,4 +56,25 @@ public interface PlayerRepository extends JpaRepository<Player, String> {
             order by p.nextCheckAt asc, p.puuid
             """)
     List<Player> findUpcoming(@Param("level") TrackingLevel level, @Param("now") Instant now, Pageable page);
+
+    /**
+     * Players of one tracking level that are not due yet but may be checked
+     * early (their early_check_at has passed), soonest regular check first.
+     */
+    @Query("""
+            select p from Player p
+            where p.trackingLevel = :level
+              and p.nextCheckAt > :now
+              and (p.earlyCheckAt is null or p.earlyCheckAt <= :now)
+            order by p.nextCheckAt asc, p.puuid
+            """)
+    List<Player> findEarlyEligible(@Param("level") TrackingLevel level, @Param("now") Instant now, Pageable page);
+
+    @Query("""
+            select count(p) from Player p
+            where p.trackingLevel = :level
+              and p.nextCheckAt > :now
+              and (p.earlyCheckAt is null or p.earlyCheckAt <= :now)
+            """)
+    long countEarlyEligible(@Param("level") TrackingLevel level, @Param("now") Instant now);
 }

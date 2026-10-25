@@ -46,6 +46,8 @@ export interface DiscoveredPageDto {
 export interface FetchQueueEntry {
   /** 1-based place in the "up next" order; null for players not due yet. */
   position: number | null;
+  /** This place in "up next" is an early check: not due yet, picked because the API budget has spare room. */
+  early: boolean;
   puuid: string;
   gameName: string | null;
   tagLine: string | null;
@@ -53,6 +55,8 @@ export interface FetchQueueEntry {
   trackingLevel: TrackingLevel;
   discoveryDepth: number | null;
   nextCheckAt: string | null; // ISO; null = never checked
+  /** Earliest time an early (spare-budget) check may happen; null = any time. */
+  earlyCheckAt: string | null;
   newestMatchAt: string | null;
   /** HEAD_CHECK = 1-call "anything new?"; BACKFILL = still walking the season. */
   checkType: 'HEAD_CHECK' | 'BACKFILL';
@@ -75,13 +79,33 @@ export interface FetchQueueDto {
     trackingLevel: TrackingLevel;
     startedAt: string;
     checkType: 'HEAD_CHECK' | 'BACKFILL';
+    early: boolean;
   } | null;
   dueTracked: number;
   dueDiscovered: number;
+  /** Not due yet but eligible for an early check (min gap since the last check has passed). */
+  earlyTracked: number;
+  earlyDiscovered: number;
+  earlyChecks: EarlyChecks;
   next: FetchQueueEntry[];
   upcomingTracked: FetchQueueEntry[];
   upcomingDiscovered: FetchQueueEntry[];
   rateLimit: RateLimitDto;
+}
+
+/** Early (spare-budget) checks: players are pulled forward while the long window has headroom. */
+export interface EarlyChecks {
+  enabled: boolean;
+  longUsed: number;
+  longLimit: number;
+  /** Long-window permits that must be free for an early check. */
+  trackedMinFree: number;
+  discoveredMinFree: number;
+  /** Would an early check be allowed right now? */
+  trackedOpen: boolean;
+  discoveredOpen: boolean;
+  trackedMinGapMs: number;
+  discoveredMinGapMs: number;
 }
 
 export type FetchPriority = 'REFRESH' | 'ANALYSIS' | 'TRACKED_HISTORY' | 'DISCOVERED_HISTORY';

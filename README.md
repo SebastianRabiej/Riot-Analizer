@@ -40,7 +40,8 @@ Then set at minimum `RIOT_API_KEY` (required — nothing works without it). The 
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — database credentials. The backend's JDBC URL is assembled from these automatically as `jdbc:postgresql://db:5432/<POSTGRES_DB>`.
 - `RIOT_CURRENT_SEASON_START_EPOCH_MS` — epoch milliseconds marking the start of the current season (default `1736380800000`, i.e. 2025-01-09). Bump this when a new season begins.
 - `RIOT_INITIAL_PLAYER` — optionally a `gameName#tagLine` to auto-track on startup. Leave it blank to add players through the UI instead.
-- `RIOT_SCHEDULER_TICK_MS` — how often the scheduler wakes up to look for players that are due (default `15000`). Each player is only fetched when its own `next_check_at` is due (see below).
+- `RIOT_SCHEDULER_TICK_MS` — how often the scheduler wakes up to look for players that are due (default `15000`). Each player is fetched when its own `next_check_at` is due, or earlier while the API budget has spare room (see below).
+- `RIOT_EARLY_CHECK_*` — early checks with spare budget (see "Early checks" below): `ENABLED` (default `true`), `TRACKED_MIN_GAP_MS` / `DISCOVERED_MIN_GAP_MS` (defaults `120000` / `1800000`), `TRACKED_MIN_FREE_RATIO` / `DISCOVERED_MIN_FREE_RATIO` (defaults `0.4` / `0.6`).
 - `RIOT_DISCOVERY_MAX_DEPTH` — how far discovery spreads from tracked players (default `1`; `-1` = unbounded, `0` = off). `RIOT_DISCOVERY_MAX_PLAYERS` caps the number of discovered players (default `0` = no cap).
 
 `.env` is git-ignored — keep your key out of version control.
@@ -136,6 +137,15 @@ The scheduler wakes every `RIOT_SCHEDULER_TICK_MS` and picks the most important 
 - **Live game** (1 call) for tracked players only.
 
 `next_check_at` then follows recent activity — a tracked player who played within the hour is checked every 5 minutes (4 while in a live game), one idle for weeks every 12 hours; discovered players every 2 h – 3 days (see `CheckCadence`).
+
+### Early checks: using spare budget
+
+That cadence is the floor for when the budget is scarce. When the long window is mostly idle, the scheduler also pulls players forward before their `next_check_at` (see `EarlyCheckPolicy`), in this order: due tracked → **early tracked** → due discovered → **early discovered**. An early check only happens while:
+
+- at least `RIOT_EARLY_CHECK_TRACKED_MIN_FREE_RATIO` (default `0.4`, i.e. 40 of 100 on a dev key) of the long window is unused — `RIOT_EARLY_CHECK_DISCOVERED_MIN_FREE_RATIO` (default `0.6`) for discovered players, and
+- the player's `early_check_at` has passed: at least `RIOT_EARLY_CHECK_TRACKED_MIN_GAP_MS` (default 2 min) / `RIOT_EARLY_CHECK_DISCOVERED_MIN_GAP_MS` (default 30 min) since their last check. Error and not-found back-offs are never cut short.
+
+Soonest-scheduled players go first, so as other work fills the window early checks stop by themselves. `RIOT_EARLY_CHECK_ENABLED=false` turns them off. The Fetch Queue view marks early picks and shows whether early checks are currently running or paused.
 
 ## Local development without Docker
 

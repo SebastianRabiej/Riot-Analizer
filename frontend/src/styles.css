@@ -736,6 +736,8 @@ tr.me-row td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
 .ab-riot b { color: var(--text-2); }
 .ab-warn { color: var(--gold); }
 .fq-stall { color: var(--gold); font-weight: 600; }
+.fq-early { color: var(--teal); }
+.fq-early-summary { margin: 0 0 10px; }
 @media (max-width: 720px) {
   .ab-prios { grid-template-columns: 1fr 1fr; }
   .ab-mark-text { display: none; }

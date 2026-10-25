@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { FetchQueueDto, FetchQueueEntry } from '../types';
+import type { EarlyChecks, FetchQueueDto, FetchQueueEntry } from '../types';
 import { getFetchQueue } from '../api';
 import { Panel, Loading, ErrorBox, EmptyState } from './ui';
 import { ProfileIcon } from './icons';
@@ -54,6 +54,42 @@ function dueLabel(iso: string | null, now: number): { text: string; cls: string 
   return { text: `in ${span(diff)}`, cls: 'fq-due later' };
 }
 
+/** Hint for a not-yet-due player: when spare budget may pull them forward. */
+function earlyHint(e: FetchQueueEntry, ec: EarlyChecks, now: number): string | null {
+  if (!ec.enabled) return null;
+  const open = e.trackingLevel === 'TRACKED' ? ec.trackedOpen : ec.discoveredOpen;
+  const at = e.earlyCheckAt ? new Date(e.earlyCheckAt).getTime() : null;
+  if (e.nextCheckAt && at !== null && at >= new Date(e.nextCheckAt).getTime()) return null; // backing off
+  if (at === null || at <= now) return open ? 'can go early now' : 'can go early when budget frees up';
+  return `can go early in ${span(Math.round((at - now) / 1000))}`;
+}
+
+function EarlyBadge() {
+  return (
+    <span className="badge teal" title="Not due yet — checked now because the Riot API budget has spare room">
+      Early
+    </span>
+  );
+}
+
+/** One line on whether spare budget is being used to check players early. */
+function earlySummary(q: FetchQueueDto): string {
+  const ec = q.earlyChecks;
+  if (!ec.enabled) return 'Early checks are off — players are checked only on their regular schedule.';
+  const free = Math.max(0, ec.longLimit - ec.longUsed);
+  const waiting = q.earlyTracked + q.earlyDiscovered;
+  const lanes: string[] = [];
+  if (ec.trackedOpen) lanes.push('tracked');
+  if (ec.discoveredOpen) lanes.push('discovered');
+  const budget = `${free}/${ec.longLimit} free (tracked need ${ec.trackedMinFree}, discovered ${ec.discoveredMinFree})`;
+  if (lanes.length === 0) {
+    return `Early checks paused — budget too busy: ${budget}.${waiting > 0 ? ` ${waiting} player${waiting === 1 ? '' : 's'} waiting to go early.` : ''}`;
+  }
+  return `Spare budget — checking ${lanes.join(' and ')} players early: ${budget}. `
+    + `Each player at most every ${span(Math.round(ec.trackedMinGapMs / 1000))} (tracked) / `
+    + `${span(Math.round(ec.discoveredMinGapMs / 1000))} (discovered).`;
+}
+
 function name(p: { gameName: string | null; tagLine: string | null }) {
   return (
     <>
@@ -86,7 +122,8 @@ function calls(e: FetchQueueEntry): string {
 }
 
 function NextRow({ e, now }: { e: FetchQueueEntry; now: number }) {
-  const due = dueLabel(e.nextCheckAt, now);
+  const regular = dueLabel(e.nextCheckAt, now);
+  const due = e.early ? { text: `regular ${regular.text}`, cls: 'fq-due later' } : regular;
   const href = playerHref(e);
   return (
     <div className={`fq-row ${e.position === 1 ? 'first' : ''}`}>
@@ -97,6 +134,7 @@ function NextRow({ e, now }: { e: FetchQueueEntry; now: number }) {
           <span className="fq-name">{href ? <Link to={href}>{name(e)}</Link> : name(e)}</span>
           <LevelBadge e={e} />
           <CheckBadge type={e.checkType} />
+          {e.early && <EarlyBadge />}
           {e.inGame && <span className="badge live">In game</span>}
           <span className={due.cls}>{due.text}</span>
         </div>
@@ -109,8 +147,9 @@ function NextRow({ e, now }: { e: FetchQueueEntry; now: number }) {
   );
 }
 
-function LaterRow({ e, now }: { e: FetchQueueEntry; now: number }) {
+function LaterRow({ e, ec, now }: { e: FetchQueueEntry; ec: EarlyChecks; now: number }) {
   const due = dueLabel(e.nextCheckAt, now);
+  const hint = earlyHint(e, ec, now);
   const href = playerHref(e);
   return (
     <div className="fq-later">
@@ -122,6 +161,7 @@ function LaterRow({ e, now }: { e: FetchQueueEntry; now: number }) {
         {e.trackingLevel === 'DISCOVERED' && <><LevelBadge e={e} />{' '}</>}
         {e.inGame && <><span className="badge live">In game</span>{' '}</>}
         {e.reason}
+        {hint && <span className="fq-early"> · {hint}</span>}
       </div>
     </div>
   );
@@ -141,6 +181,7 @@ function NowCard({ q, now, receivedAt }: { q: FetchQueueDto; now: number; receiv
             <span>Fetching <b className="fq-name">{href ? <Link to={href}>{name(r)}</Link> : name(r)}</b></span>
             <LevelBadge e={{ trackingLevel: r.trackingLevel, discoveryDepth: null }} />
             <CheckBadge type={r.checkType} />
+            {r.early && <EarlyBadge />}
           </div>
           <div className="fq-meta">
             started {span(since)} ago
@@ -181,7 +222,11 @@ export function FetchQueuePanel() {
   }
 
   const dueTotal = q.dueTracked + q.dueDiscovered;
-  const hidden = Math.max(0, dueTotal - q.next.length);
+  const earlyInList = q.next.filter((e) => e.early).length;
+  const earlyOpenTotal = (q.earlyChecks.trackedOpen ? q.earlyTracked : 0)
+    + (q.earlyChecks.discoveredOpen ? q.earlyDiscovered : 0);
+  const hidden = Math.max(0, dueTotal + earlyOpenTotal - q.next.length);
+  const earlyNote = earlyInList > 0 ? ` ${earlyInList} shown early (spare budget).` : '';
 
   return (
     <div className="stack">
@@ -198,33 +243,34 @@ export function FetchQueuePanel() {
 
       <Panel
         title="Up next"
-        sub={dueTotal === 0
-          ? 'Nobody is due — the queue below shows who comes up next.'
-          : `${q.dueTracked} tracked · ${q.dueDiscovered} discovered due now. Tracked players always go first; the order is re-checked after every player.`}
+        sub={(dueTotal === 0
+          ? (earlyInList > 0 ? 'Nobody is due — spare budget is used to check these players early.' : 'Nobody is due — the queue below shows who comes up next.')
+          : `${q.dueTracked} tracked · ${q.dueDiscovered} discovered due now. Tracked players always go first; the order is re-checked after every player.${earlyNote}`)}
       >
+        <p className="note fq-early-summary">{earlySummary(q)}</p>
         {q.next.length === 0 ? (
           <EmptyState emoji="✅" message="Nothing waiting" hint="Every player's next check is in the future." />
         ) : (
           <div className="fq-list">
             {q.next.map((e) => <NextRow key={e.puuid} e={e} now={now} />)}
-            {hidden > 0 && <p className="note fq-more">+ {hidden} more due player{hidden === 1 ? '' : 's'} after these</p>}
+            {hidden > 0 && <p className="note fq-more">+ {hidden} more player{hidden === 1 ? '' : 's'} after these</p>}
           </div>
         )}
       </Panel>
 
-      <Panel title="Later" sub="Not due yet, soonest first. A tracked player that becomes due jumps ahead of any discovered backlog.">
+      <Panel title="Later" sub="Regular schedule, soonest first. While the API budget has spare room, players are pulled forward early (tracked before the discovered backlog).">
         <div className="fq-lanes">
           <div>
             <div className="section-title">⭐ Tracked</div>
             {q.upcomingTracked.length === 0
               ? <p className="note">No tracked player scheduled.</p>
-              : q.upcomingTracked.map((e) => <LaterRow key={e.puuid} e={e} now={now} />)}
+              : q.upcomingTracked.map((e) => <LaterRow key={e.puuid} e={e} ec={q.earlyChecks} now={now} />)}
           </div>
           <div>
             <div className="section-title">🔭 Discovered</div>
             {q.upcomingDiscovered.length === 0
               ? <p className="note">No discovered player scheduled.</p>
-              : q.upcomingDiscovered.map((e) => <LaterRow key={e.puuid} e={e} now={now} />)}
+              : q.upcomingDiscovered.map((e) => <LaterRow key={e.puuid} e={e} ec={q.earlyChecks} now={now} />)}
           </div>
         </div>
       </Panel>

@@ -53,6 +53,13 @@ public class Player {
     /** When the scheduler should look at this player again; NULL = due now. */
     private Instant nextCheckAt;
 
+    /**
+     * Earliest time the scheduler may check this player <em>before</em>
+     * {@link #nextCheckAt}, when the Riot budget has spare room; NULL = any
+     * time. Equals nextCheckAt after a failed check (no early retries).
+     */
+    private Instant earlyCheckAt;
+
     /** Creation time of the newest match in the player's own Riot match list, as of the last sync. */
     private Instant newestMatchAt;
 
@@ -244,6 +251,14 @@ public class Player {
 
     public void setNextCheckAt(Instant nextCheckAt) {
         this.nextCheckAt = nextCheckAt;
+    }
+
+    public Instant getEarlyCheckAt() {
+        return earlyCheckAt;
+    }
+
+    public void setEarlyCheckAt(Instant earlyCheckAt) {
+        this.earlyCheckAt = earlyCheckAt;
     }
 
     public Instant getNewestMatchAt() {

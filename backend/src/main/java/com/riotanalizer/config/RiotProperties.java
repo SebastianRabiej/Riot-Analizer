@@ -53,6 +53,18 @@ public class RiotProperties {
     private int rateLimitTrackedReserve = 10;
     private int rateLimitDiscoveredReserve = 25;
 
+    /**
+     * Early checks: when the long window has spare room, players are checked
+     * before their regular next_check_at (see EarlyCheckPolicy). A player is
+     * checked early at most once per min-gap, and only while at least
+     * min-free-ratio of the long window is unused.
+     */
+    private boolean earlyCheckEnabled = true;
+    private long earlyCheckTrackedMinGapMs = 120_000L;
+    private long earlyCheckDiscoveredMinGapMs = 1_800_000L;
+    private double earlyCheckTrackedMinFreeRatio = 0.4;
+    private double earlyCheckDiscoveredMinFreeRatio = 0.6;
+
     /** Optional initial player to register+track on startup, "gameName#tagLine". */
     private String initialPlayer;
 
@@ -167,6 +179,46 @@ public class RiotProperties {
 
     public void setRateLimitDiscoveredReserve(int rateLimitDiscoveredReserve) {
         this.rateLimitDiscoveredReserve = rateLimitDiscoveredReserve;
+    }
+
+    public boolean isEarlyCheckEnabled() {
+        return earlyCheckEnabled;
+    }
+
+    public void setEarlyCheckEnabled(boolean earlyCheckEnabled) {
+        this.earlyCheckEnabled = earlyCheckEnabled;
+    }
+
+    public long getEarlyCheckTrackedMinGapMs() {
+        return earlyCheckTrackedMinGapMs;
+    }
+
+    public void setEarlyCheckTrackedMinGapMs(long earlyCheckTrackedMinGapMs) {
+        this.earlyCheckTrackedMinGapMs = earlyCheckTrackedMinGapMs;
+    }
+
+    public long getEarlyCheckDiscoveredMinGapMs() {
+        return earlyCheckDiscoveredMinGapMs;
+    }
+
+    public void setEarlyCheckDiscoveredMinGapMs(long earlyCheckDiscoveredMinGapMs) {
+        this.earlyCheckDiscoveredMinGapMs = earlyCheckDiscoveredMinGapMs;
+    }
+
+    public double getEarlyCheckTrackedMinFreeRatio() {
+        return earlyCheckTrackedMinFreeRatio;
+    }
+
+    public void setEarlyCheckTrackedMinFreeRatio(double earlyCheckTrackedMinFreeRatio) {
+        this.earlyCheckTrackedMinFreeRatio = earlyCheckTrackedMinFreeRatio;
+    }
+
+    public double getEarlyCheckDiscoveredMinFreeRatio() {
+        return earlyCheckDiscoveredMinFreeRatio;
+    }
+
+    public void setEarlyCheckDiscoveredMinFreeRatio(double earlyCheckDiscoveredMinFreeRatio) {
+        this.earlyCheckDiscoveredMinFreeRatio = earlyCheckDiscoveredMinFreeRatio;
     }
 
     public String getInitialPlayer() {

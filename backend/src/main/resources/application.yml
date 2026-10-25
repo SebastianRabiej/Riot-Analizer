@@ -80,6 +80,15 @@ riot:
   # Scheduler wake-up; each player is only fetched when its own next_check_at
   # (derived from how recently they played) is due. See ScheduledFetcher.
   scheduler-tick-ms: ${RIOT_SCHEDULER_TICK_MS:15000}
+  # Early checks: while the long rate-limit window has spare room, players are
+  # checked before their regular next_check_at, soonest-scheduled first, at
+  # most once per min-gap each. Tracked players need min-free-ratio of the long
+  # window unused (0.4 = 40 of 100 on a dev key), discovered players more.
+  early-check-enabled: ${RIOT_EARLY_CHECK_ENABLED:true}
+  early-check-tracked-min-gap-ms: ${RIOT_EARLY_CHECK_TRACKED_MIN_GAP_MS:120000}
+  early-check-discovered-min-gap-ms: ${RIOT_EARLY_CHECK_DISCOVERED_MIN_GAP_MS:1800000}
+  early-check-tracked-min-free-ratio: ${RIOT_EARLY_CHECK_TRACKED_MIN_FREE_RATIO:0.4}
+  early-check-discovered-min-free-ratio: ${RIOT_EARLY_CHECK_DISCOVERED_MIN_FREE_RATIO:0.6}
   initial-player: ${RIOT_INITIAL_PLAYER:}
   match-page-size: ${RIOT_MATCH_PAGE_SIZE:100}
   fetch-batch-size: ${RIOT_FETCH_BATCH_SIZE:25}
