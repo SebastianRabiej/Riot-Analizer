@@ -5,6 +5,9 @@ import com.riotanalizer.domain.Player;
 import com.riotanalizer.domain.TrackingLevel;
 import com.riotanalizer.dto.FetchQueueDto;
 import com.riotanalizer.dto.FetchQueueEntryDto;
+import com.riotanalizer.dto.RateLimitDto;
+import com.riotanalizer.ratelimit.RiotRateLimitObserver;
+import com.riotanalizer.ratelimit.RiotRateLimiter;
 import com.riotanalizer.repository.PlayerRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -29,14 +32,20 @@ public class FetchQueueService {
     private final ScheduledFetcher fetcher;
     private final LiveGameService liveGames;
     private final RiotProperties props;
+    private final RiotRateLimiter rateLimiter;
+    private final RiotRateLimitObserver rateLimitObserver;
     private final long tickMs;
 
     public FetchQueueService(PlayerRepository players, ScheduledFetcher fetcher, LiveGameService liveGames,
-                             RiotProperties props, @Value("${riot.scheduler-tick-ms:15000}") long tickMs) {
+                             RiotProperties props, RiotRateLimiter rateLimiter,
+                             RiotRateLimitObserver rateLimitObserver,
+                             @Value("${riot.scheduler-tick-ms:15000}") long tickMs) {
         this.players = players;
         this.fetcher = fetcher;
         this.liveGames = liveGames;
         this.props = props;
+        this.rateLimiter = rateLimiter;
+        this.rateLimitObserver = rateLimitObserver;
         this.tickMs = tickMs;
     }
 
@@ -84,7 +93,33 @@ public class FetchQueueService {
                 Math.max(0, players.countDue(TrackingLevel.DISCOVERED, now) - runningDueDiscovered),
                 next,
                 upcoming(TrackingLevel.TRACKED, n, now),
-                upcoming(TrackingLevel.DISCOVERED, n, now));
+                upcoming(TrackingLevel.DISCOVERED, n, now),
+                rateLimit());
+    }
+
+    private RateLimitDto rateLimit() {
+        RiotRateLimiter.Status s = rateLimiter.status();
+        RateLimitDto.RiotView riot = rateLimitObserver.snapshot().map(o -> new RateLimitDto.RiotView(
+                o.observedAt() == null ? null : o.observedAt().toString(),
+                o.appWindows().stream()
+                        .map(w -> new RateLimitDto.RiotWindow(w.windowSec(), w.count(), w.limit()))
+                        .toList(),
+                o.rateLimitedCount(),
+                o.lastRateLimited() == null ? null : o.lastRateLimited().at().toString(),
+                o.lastRateLimited() == null ? null : o.lastRateLimited().retryAfterSec(),
+                o.lastRateLimited() == null ? null : o.lastRateLimited().type())).orElse(null);
+        return new RateLimitDto(
+                window(s.shortWindow()),
+                window(s.longWindow()),
+                s.priorities().stream()
+                        .map(p -> new RateLimitDto.Priority(p.priority().name(), p.longLimit(), p.reserve(),
+                                p.freeInMs(), p.waiting()))
+                        .toList(),
+                riot);
+    }
+
+    private static RateLimitDto.Window window(RiotRateLimiter.WindowStatus w) {
+        return new RateLimitDto.Window(w.used(), w.limit(), w.windowMs(), w.nextExpiryInMs());
     }
 
     private List<FetchQueueEntryDto> upcoming(TrackingLevel level, int n, Instant now) {

@@ -102,4 +102,39 @@ class RiotRateLimiterTest {
             Thread.sleep(5);
         }
     }
+
+    @Test
+    void statusShowsUsageAndWhenEachPriorityIsFreeAgain() {
+        // long window: 10 calls / 60 s; tracked keeps 2 free, discovered 4.
+        RiotRateLimiter limiter = new RiotRateLimiter(100, 1_000, 10, 60_000, 2, 4);
+        for (int i = 0; i < 7; i++) {
+            limiter.acquire(FetchPriority.REFRESH);
+        }
+        RiotRateLimiter.Status status = limiter.status(System.currentTimeMillis());
+
+        assertEquals(7, status.longWindow().used());
+        assertEquals(10, status.longWindow().limit());
+        assertTrue(status.longWindow().nextExpiryInMs() > 50_000);
+
+        RiotRateLimiter.PriorityStatus refresh = status.priorities().get(FetchPriority.REFRESH.ordinal());
+        RiotRateLimiter.PriorityStatus tracked = status.priorities().get(FetchPriority.TRACKED_HISTORY.ordinal());
+        RiotRateLimiter.PriorityStatus discovered = status.priorities().get(FetchPriority.DISCOVERED_HISTORY.ordinal());
+        assertEquals(0, refresh.freeInMs());          // 7 < 10
+        assertEquals(8, tracked.longLimit());
+        assertEquals(0, tracked.freeInMs());          // 7 < 8
+        assertEquals(6, discovered.longLimit());
+        assertTrue(discovered.freeInMs() > 50_000);   // 7 >= 6: wait for the oldest call to expire
+        assertEquals(0, discovered.waiting());
+    }
+
+    @Test
+    void emptyLimiterIsFreeForEveryone() {
+        RiotRateLimiter limiter = new RiotRateLimiter(20, 1_000, 100, 120_000, 10, 25);
+        RiotRateLimiter.Status status = limiter.status(System.currentTimeMillis());
+        assertEquals(0, status.longWindow().used());
+        assertEquals(null, status.longWindow().nextExpiryInMs());
+        for (RiotRateLimiter.PriorityStatus p : status.priorities()) {
+            assertEquals(0, p.freeInMs());
+        }
+    }
 }

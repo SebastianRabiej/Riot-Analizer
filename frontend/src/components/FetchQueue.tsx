@@ -4,24 +4,26 @@ import type { FetchQueueDto, FetchQueueEntry } from '../types';
 import { getFetchQueue } from '../api';
 import { Panel, Loading, ErrorBox, EmptyState } from './ui';
 import { ProfileIcon } from './icons';
+import { ApiBudgetCard, budgetWait } from './ApiBudget';
 
-const POLL_MS = 5000;
+const POLL_MS = 3000;
 
 /** Poll the scheduler snapshot; keeps the last good data while refreshing. */
 function useFetchQueue() {
   const [data, setData] = useState<FetchQueueDto | null>(null);
+  const [receivedAt, setReceivedAt] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     const load = () =>
       getFetchQueue(15)
-        .then((d) => { if (active) { setData(d); setError(null); } })
+        .then((d) => { if (active) { setData(d); setReceivedAt(Date.now()); setError(null); } })
         .catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : 'Could not load the queue'); });
     load();
     const id = setInterval(load, POLL_MS);
     return () => { active = false; clearInterval(id); };
   }, []);
-  return { data, error };
+  return { data, receivedAt, error };
 }
 
 /** Re-render every second so relative times stay live between polls. */
@@ -125,10 +127,11 @@ function LaterRow({ e, now }: { e: FetchQueueEntry; now: number }) {
   );
 }
 
-function NowCard({ q, now }: { q: FetchQueueDto; now: number }) {
+function NowCard({ q, now, receivedAt }: { q: FetchQueueDto; now: number; receivedAt: number }) {
   const r = q.running;
   if (r) {
     const since = Math.max(0, Math.round((now - new Date(r.startedAt).getTime()) / 1000));
+    const stalledMs = budgetWait(q.rateLimit, r.trackingLevel, receivedAt, now);
     const href = playerHref(r);
     return (
       <div className="fq-now active">
@@ -139,7 +142,12 @@ function NowCard({ q, now }: { q: FetchQueueDto; now: number }) {
             <LevelBadge e={{ trackingLevel: r.trackingLevel, discoveryDepth: null }} />
             <CheckBadge type={r.checkType} />
           </div>
-          <div className="fq-meta">started {span(since)} ago</div>
+          <div className="fq-meta">
+            started {span(since)} ago
+            {stalledMs > 0 && (
+              <span className="fq-stall"> · waiting for API budget — next call in {Math.ceil(stalledMs / 1000)}s</span>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -165,7 +173,7 @@ function NowCard({ q, now }: { q: FetchQueueDto; now: number }) {
 }
 
 export function FetchQueuePanel() {
-  const { data: q, error } = useFetchQueue();
+  const { data: q, receivedAt, error } = useFetchQueue();
   const now = useNow();
 
   if (!q) {
@@ -179,8 +187,13 @@ export function FetchQueuePanel() {
     <div className="stack">
       {error && <p className="note" style={{ color: 'var(--loss)' }}>Refresh failed ({error}) — showing the last snapshot.</p>}
 
-      <Panel title="Right now" sub="Live view of the background fetcher · refreshes every 5s">
-        <NowCard q={q} now={now} />
+      <Panel title="Right now" sub="Live view of the background fetcher · refreshes every 3s">
+        <NowCard q={q} now={now} receivedAt={receivedAt} />
+      </Panel>
+
+      <Panel title="Riot API budget"
+        sub="Sliding window: each call frees up exactly one window-length after it was made. Background work stops early to keep room for you.">
+        <ApiBudgetCard rl={q.rateLimit} receivedAt={receivedAt} now={now} />
       </Panel>
 
       <Panel

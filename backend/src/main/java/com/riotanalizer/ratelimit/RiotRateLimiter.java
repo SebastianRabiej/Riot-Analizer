@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -128,6 +129,59 @@ public class RiotRateLimiter {
         }
     }
 
+    /**
+     * One sliding window right now.
+     *
+     * @param used           calls made inside the window
+     * @param nextExpiryInMs ms until the oldest of those calls leaves the window (null when empty)
+     */
+    public record WindowStatus(int used, int limit, long windowMs, Long nextExpiryInMs) {
+    }
+
+    /**
+     * Budget as seen by one priority.
+     *
+     * @param longLimit long-window calls this priority may use (limit minus its reserve)
+     * @param freeInMs  ms until this priority could take a permit on budget alone (0 = now);
+     *                  it can still queue behind higher-priority waiters
+     * @param waiting   callers of exactly this priority waiting for a permit
+     */
+    public record PriorityStatus(FetchPriority priority, int longLimit, int reserve, long freeInMs, int waiting) {
+    }
+
+    public record Status(long at, WindowStatus shortWindow, WindowStatus longWindow, List<PriorityStatus> priorities) {
+    }
+
+    /** Snapshot of both windows and of each priority's budget (for the admin view). */
+    public Status status() {
+        return status(System.currentTimeMillis());
+    }
+
+    Status status(long now) {
+        lock.lock();
+        try {
+            WindowStatus shortStatus = shortWindow.status(now);
+            WindowStatus longStatus = longWindow.status(now);
+            List<PriorityStatus> priorities = new java.util.ArrayList<>();
+            for (FetchPriority p : FetchPriority.values()) {
+                int reserve = longReserve[p.ordinal()];
+                int longLimit = longWindow.limit - reserve;
+                long freeIn = Math.max(shortWindow.millisUntilFree(now, shortWindow.limit),
+                        longWindow.millisUntilFree(now, longLimit));
+                int waiting = 0;
+                for (Waiter w : queue) {
+                    if (w.priority == p) {
+                        waiting++;
+                    }
+                }
+                priorities.add(new PriorityStatus(p, longLimit, reserve, freeIn, waiting));
+            }
+            return new Status(now, shortStatus, longStatus, List.copyOf(priorities));
+        } finally {
+            lock.unlock();
+        }
+    }
+
     private record Waiter(FetchPriority priority, long seq) {
     }
 
@@ -167,6 +221,15 @@ public class RiotRateLimiter {
 
         void record(long now) {
             hits.addLast(now);
+        }
+
+        WindowStatus status(long now) {
+            long cutoff = now - windowMs;
+            while (!hits.isEmpty() && hits.peekFirst() <= cutoff) {
+                hits.pollFirst();
+            }
+            Long nextExpiry = hits.isEmpty() ? null : Math.max(0L, hits.peekFirst() + windowMs - now);
+            return new WindowStatus(hits.size(), limit, windowMs, nextExpiry);
         }
     }
 }

@@ -81,6 +81,39 @@ export interface FetchQueueDto {
   next: FetchQueueEntry[];
   upcomingTracked: FetchQueueEntry[];
   upcomingDiscovered: FetchQueueEntry[];
+  rateLimit: RateLimitDto;
+}
+
+export type FetchPriority = 'REFRESH' | 'ANALYSIS' | 'TRACKED_HISTORY' | 'DISCOVERED_HISTORY';
+
+/** Riot API budget. "...InMs" values are relative to the snapshot time. */
+export interface RateLimitDto {
+  shortWindow: RateLimitWindow;
+  longWindow: RateLimitWindow;
+  /** Highest priority first. */
+  priorities: {
+    priority: FetchPriority;
+    longLimit: number; // long-window calls this priority may use (limit minus reserve)
+    reserve: number;
+    freeInMs: number; // 0 = can call now (budget-wise)
+    waiting: number;
+  }[];
+  /** Riot's own count from response headers; null before the first call. */
+  riot: {
+    observedAt: string | null;
+    appWindows: { windowSec: number; count: number; limit: number }[];
+    rateLimitedCount: number;
+    lastRateLimitedAt: string | null;
+    lastRetryAfterSec: number | null;
+    lastRateLimitType: string | null;
+  } | null;
+}
+
+export interface RateLimitWindow {
+  used: number;
+  limit: number;
+  windowMs: number;
+  nextExpiryInMs: number | null;
 }
 
 export interface ChampionStatDto {

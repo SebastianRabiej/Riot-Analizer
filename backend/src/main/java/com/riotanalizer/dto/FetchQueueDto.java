@@ -15,6 +15,7 @@ import java.util.List;
  * @param next               the next players, in the exact order the scheduler will pick them
  * @param upcomingTracked    TRACKED players not due yet, soonest first
  * @param upcomingDiscovered DISCOVERED players not due yet, soonest first
+ * @param rateLimit          Riot API budget right now
  */
 public record FetchQueueDto(
         String generatedAt,
@@ -26,7 +27,8 @@ public record FetchQueueDto(
         long dueDiscovered,
         List<FetchQueueEntryDto> next,
         List<FetchQueueEntryDto> upcomingTracked,
-        List<FetchQueueEntryDto> upcomingDiscovered
+        List<FetchQueueEntryDto> upcomingDiscovered,
+        RateLimitDto rateLimit
 ) {
 
     public record Running(String puuid, String gameName, String tagLine, String trackingLevel,

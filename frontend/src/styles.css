@@ -713,3 +713,30 @@ tr.me-row td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
   .fq-steps { flex-direction: column; }
   .fq-steps li + li::before { margin: 0 6px 0 0; }
 }
+
+/* ---------- API budget (Fetch queue tab) ---------- */
+.ab { display: flex; flex-direction: column; gap: 12px; }
+.ab-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.ab-big { font-size: 28px; font-weight: 800; line-height: 1; }
+.ab-of { font-size: 16px; font-weight: 700; color: var(--text-3); }
+.ab-bar { position: relative; height: 10px; border-radius: 999px; background: var(--panel-3); overflow: visible; }
+.ab-fill { height: 100%; border-radius: 999px; background: var(--teal); transition: width .4s ease; }
+.ab-fill.warm { background: var(--gold); }
+.ab-fill.hot { background: #f08a4b; }
+.ab-fill.full { background: var(--loss); }
+.ab-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text-3); border-radius: 2px; }
+.ab-mark-label { position: absolute; top: 18px; right: 4px; white-space: nowrap; font-size: 10.5px; color: var(--text-3); }
+.ab-bar { margin-bottom: 18px; }
+.ab-prios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ab-prio { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; }
+.ab-prio-name { font-size: 12.5px; font-weight: 700; }
+.ab-prio-state { font-size: 13px; font-weight: 700; margin-top: 3px; }
+.ab-prio-state.free { color: var(--win); }
+.ab-prio-state.wait { color: var(--gold); }
+.ab-riot b { color: var(--text-2); }
+.ab-warn { color: var(--gold); }
+.fq-stall { color: var(--gold); font-weight: 600; }
+@media (max-width: 720px) {
+  .ab-prios { grid-template-columns: 1fr 1fr; }
+  .ab-mark-text { display: none; }
+}
