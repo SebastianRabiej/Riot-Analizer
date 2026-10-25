@@ -1,4 +1,4 @@
-.PHONY: up down logs port rebuild
+.PHONY: up down logs port rebuild admin-hash backend-test
 
 # Build images and start everything in the background.
 up:
@@ -19,6 +19,15 @@ port:
 # Rebuild images from scratch and restart.
 rebuild:
 	docker compose up --build -d --force-recreate
+
+# Prompt (twice, hidden) for an admin password and print its BCrypt hash.
+# Nothing is stored; paste the hash into .env as ADMIN_PASSWORD_HASH='...'.
+admin-hash:
+	@./scripts/admin-hash.sh
+
+# Run the backend test suite in a throwaway Maven container.
+backend-test:
+	docker run --rm -v "$(CURDIR)/backend":/w -w /w maven:3.9-eclipse-temurin-21 mvn -q -B test
 
 # ---- Railway (cloud) ----
 # One-shot, reproducible provision of the whole Railway environment from code.

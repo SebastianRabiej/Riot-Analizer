@@ -45,6 +45,37 @@ Then set at minimum `RIOT_API_KEY` (required — nothing works without it). The 
 
 `.env` is git-ignored — keep your key out of version control.
 
+## Admin login (tracking is admin-only)
+
+The stats pages are public, but **everything about tracking** belongs to a single admin account: the tracked-player list (home page + top bar), the *Manage tracking* page with discovered players, the Track/Untrack buttons, and the tracking state in player profiles. Visitors can still look up any Riot ID.
+
+Set it up once:
+
+```bash
+make admin-hash            # or ./scripts/admin-hash.sh — asks for the password twice, prints a BCrypt hash
+```
+
+The script needs `htpasswd` (built into macOS; `apt install apache2-utils` on Debian/Ubuntu) or Python with `pip install bcrypt`. The password is read at a hidden prompt and never stored or passed as an argument.
+
+and put the result in `.env` — **keep the single quotes**, the hash contains `$` characters that Docker Compose would otherwise try to expand:
+
+```bash
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH='$2y$12$...'
+```
+
+Then sign in via **🔒 Admin** in the top bar (`/login`). Use a long random password (16+ characters; BCrypt only looks at the first 72 bytes). If `ADMIN_PASSWORD_HASH` is empty, admin login is disabled; if it isn't a valid BCrypt hash the backend refuses to start.
+
+How it is protected:
+
+- **Storage** — only a BCrypt (cost 12) hash is configured via environment; the password is never stored in git, the database or logs.
+- **Checking** — the hash is verified server-side with a constant-time username compare and a BCrypt check that always runs, so timing doesn't reveal which part was wrong. After `ADMIN_MAX_FAILED_LOGINS` (10) failures within `ADMIN_LOCKOUT_MINUTES` (15), login is blocked with HTTP 429 until the window passes.
+- **Session** — a server-side session in an `HttpOnly`, `SameSite=Strict`, `Secure` cookie (`RA_SESSION`); the id is rotated at login and the session is invalidated at logout. Idle timeout `ADMIN_SESSION_TIMEOUT` (8h). Sessions are in memory, so restarting the backend logs you out.
+- **CSRF** — every POST/PUT/DELETE (login and logout included) must echo the `XSRF-TOKEN` cookie in an `X-XSRF-TOKEN` header; the token is rotated at login.
+- **Enforcement** — the backend is the gatekeeper: `/api/tracked`, `/api/discovered` and `POST`/`DELETE /api/players/{name}/{tag}/track` return 401 without the admin session (URL rules plus `@PreAuthorize`), and player profiles omit tracking fields for visitors. The UI hiding is cosmetic on top of that.
+
+`APP_COOKIE_SECURE` defaults to `true`; `docker-compose.yml` sets it to `false` because the local stack is plain http. Keep it `true` anywhere served over HTTPS. Endpoints: `GET /api/auth/me`, `POST /api/auth/login` (`{"username","password"}`), `POST /api/auth/logout`.
+
 ## Running with Docker Compose
 
 From the repository root:
@@ -67,13 +98,14 @@ This prints something like `0.0.0.0:49173`; open `http://localhost:49173` in you
 
 ## Setting the tracked player
 
-There are three ways to tell the app whom to track:
+There are two ways to tell the app whom to track:
 
 1. Set `RIOT_INITIAL_PLAYER=gameName#tagLine` in `.env` before starting, and the backend registers and begins tracking that player on startup.
-2. Use the **search box in the UI** — looking up a Riot ID resolves it against Riot, registers the player as tracked, and returns their profile. (`GET /api/players/{gameName}/{tagLine}`.)
-3. Trigger an immediate refresh for a player with a POST: `POST /api/players/{gameName}/{tagLine}/refresh`, which does a rate-limited fetch right away instead of waiting for the next scheduled run.
+2. As the **admin**, use *Manage tracking* (`/tracked`) or the **☆ Track player** button on a player's page (`POST /api/players/{gameName}/{tagLine}/track`; `DELETE` untracks).
 
-The list of tracked players is available at `GET /api/tracked`.
+Anyone can look a player up with the search box (`GET /api/players/{gameName}/{tagLine}`) or force a refresh (`POST /api/players/{gameName}/{tagLine}/refresh`) — that fetches their profile but does not track them.
+
+The list of tracked players is available to the admin at `GET /api/tracked`.
 
 ## Rate limiting and the scheduler
 
@@ -134,3 +166,5 @@ The Vite dev server runs on `http://localhost:5173` and proxies `/api` to `http:
 - `make logs` — tail logs from all services.
 - `make port` — print the frontend's random host port.
 - `make rebuild` — rebuild images and force-recreate the containers.
+- `make admin-hash` — prompt for an admin password and print its BCrypt hash.
+- `make backend-test` — run the backend tests in a Maven container.

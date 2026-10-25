@@ -32,6 +32,8 @@ import com.riotanalizer.service.RolesService;
 import com.riotanalizer.service.StatsService;
 import com.riotanalizer.service.TimeStatsService;
 import com.riotanalizer.service.VsChampionService;
+import com.riotanalizer.security.AdminAccess;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -83,9 +85,15 @@ public class PlayerController {
         this.queueAdviceService = queueAdviceService;
     }
 
+    /** Player profile; tracking state is only included for the admin. */
+    private PlayerDto view(Player player) {
+        PlayerDto dto = playerService.toDto(player);
+        return AdminAccess.isAdmin() ? dto : dto.withoutTrackingInfo();
+    }
+
     @GetMapping("/players/{gameName}/{tagLine}")
     public PlayerDto getPlayer(@PathVariable String gameName, @PathVariable String tagLine) {
-        return playerService.toDto(playerService.getOrRegister(gameName, tagLine));
+        return view(playerService.getOrRegister(gameName, tagLine));
     }
 
     @GetMapping("/players/{gameName}/{tagLine}/stats")
@@ -230,25 +238,31 @@ public class PlayerController {
 
     @PostMapping("/players/{gameName}/{tagLine}/refresh")
     public PlayerDto refresh(@PathVariable String gameName, @PathVariable String tagLine) {
-        return playerService.toDto(playerService.refresh(gameName, tagLine));
+        return view(playerService.refresh(gameName, tagLine));
     }
 
+    // ---- Tracking management: admin only (also enforced by URL rules in SecurityConfig) ----
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/players/{gameName}/{tagLine}/track")
     public PlayerDto track(@PathVariable String gameName, @PathVariable String tagLine) {
         return playerService.toDto(playerService.track(gameName, tagLine));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/players/{gameName}/{tagLine}/track")
     public PlayerDto untrack(@PathVariable String gameName, @PathVariable String tagLine) {
         return playerService.toDto(playerService.untrack(gameName, tagLine));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tracked")
     public List<PlayerDto> tracked() {
         return playerService.trackedPlayers().stream().map(playerService::toDto).toList();
     }
 
     /** Players found in tracked players' matches and fetched in the background, paged. */
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/discovered")
     public DiscoveredPageDto discovered(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "50") int size,

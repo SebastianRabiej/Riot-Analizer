@@ -209,6 +209,14 @@ export interface Page<T> {
   size: number;
 }
 
+// Admin session state (GET /api/auth/me).
+export interface AuthStatus {
+  authenticated: boolean;
+  username: string | null;
+  /** False when the server has no admin password configured. */
+  loginEnabled: boolean;
+}
+
 // Error envelope returned by the backend.
 export interface ApiError {
   error: string;

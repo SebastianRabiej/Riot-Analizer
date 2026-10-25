@@ -19,6 +19,7 @@ npm i -g @railway/cli
 railway login
 railway link          # create/select the Railway project + environment
 export RIOT_API_KEY=your-riot-dev-key
+export ADMIN_PASSWORD_HASH='$2y$12$...'   # from `make admin-hash`; single quotes keep the $
 ```
 
 ## Recreate the whole environment
@@ -59,6 +60,10 @@ When it finishes, open the printed frontend URL.
 
 ## Notes
 
+- **Admin password**: change it by generating a new hash and running
+  `railway variables --service backend --set 'ADMIN_PASSWORD_HASH=$2y$12$...'`
+  (single quotes so your shell keeps the `$`). Re-running `config apply`
+  without `ADMIN_PASSWORD_HASH` exported clears it and disables admin login.
 - **Riot dev keys expire every 24h.** Refresh with
   `railway variables --service backend --set RIOT_API_KEY=<new>` (or re-run the
   provision with a fresh `RIOT_API_KEY`).

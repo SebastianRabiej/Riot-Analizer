@@ -5,6 +5,7 @@ import { useAsync } from '../hooks';
 import { Loading, ErrorBox, Segmented } from '../components/ui';
 import { PlayerHeader } from '../components/PlayerHeader';
 import { PlayerContext } from '../playerContext';
+import { useAuth } from '../auth';
 
 const QUEUE_OPTIONS = [
   { value: 0, label: 'All' },
@@ -31,10 +32,12 @@ export function PlayerShell() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [tracking, setTracking] = useState(false);
+  const { isAdmin } = useAuth();
 
+  // Re-fetch on login/logout: tracking fields are only returned to the admin.
   const { data: player, loading, error } = useAsync(
     () => getPlayer(gameName, tagLine),
-    [gameName, tagLine, refreshKey],
+    [gameName, tagLine, refreshKey, isAdmin],
   );
 
   const doRefresh = useCallback(() => {
@@ -91,6 +94,7 @@ export function PlayerShell() {
         onRefresh={doRefresh}
         tracking={tracking}
         onToggleTracked={doToggleTracked}
+        canManageTracking={isAdmin}
       />
 
       <div className="spread" style={{ marginTop: 14 }}>

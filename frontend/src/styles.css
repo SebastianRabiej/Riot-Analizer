@@ -642,3 +642,28 @@ tr.me-row td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
   .track-list .track-card .tc-actions { width: 100%; justify-content: flex-end; }
 }
 
+
+/* ---------- admin login ---------- */
+.auth-slot { display: flex; align-items: center; }
+.login-wrap { display: flex; justify-content: center; padding: 6vh 0 24px; }
+.login-card {
+  width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+  padding: 26px;
+}
+.login-card .brand-mark { width: 46px; height: 46px; font-size: 19px; border-radius: 12px; margin: 0 auto 4px; }
+.login-card h1 { font-size: 21px; text-align: center; }
+.login-card .note { text-align: center; margin: -4px 0 6px; }
+.login-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.login-field input {
+  background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 9px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.login-field input:focus { border-color: var(--teal-dim); box-shadow: 0 0 0 3px rgba(51,224,192,0.12); }
+.login-error {
+  color: var(--loss); background: var(--loss-bg); border-radius: 8px;
+  font-size: 13px; padding: 8px 10px; margin: 0;
+}
+.login-submit { justify-content: center; margin-top: 4px; }
+.login-card .panel-link { align-self: center; }

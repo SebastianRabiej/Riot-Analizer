@@ -34,6 +34,14 @@ services:
       RIOT_MATCH_PAGE_SIZE: ${RIOT_MATCH_PAGE_SIZE:-100}
       RIOT_MAX_HISTORY_MATCHES: ${RIOT_MAX_HISTORY_MATCHES:-2000}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Admin login (see .env.example). Only the BCrypt hash is passed in.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      ADMIN_SESSION_TIMEOUT: ${ADMIN_SESSION_TIMEOUT:-8h}
+      ADMIN_MAX_FAILED_LOGINS: ${ADMIN_MAX_FAILED_LOGINS:-10}
+      ADMIN_LOCKOUT_MINUTES: ${ADMIN_LOCKOUT_MINUTES:-15}
+      # Local compose is served over plain http -> cookies can't be Secure here.
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-false}
     # Backend is internal-only: the frontend nginx proxies to it by service name.
     # Publish the container port with NO host port so Docker assigns a random
     # host port (handy for debugging; not required for normal operation).

@@ -17,6 +17,10 @@
 set -euo pipefail
 
 : "${RIOT_API_KEY:?Set RIOT_API_KEY before running (a Riot dev key from https://developer.riotgames.com/).}"
+if [ -z "${ADMIN_PASSWORD_HASH:-}" ]; then
+  echo "WARNING: ADMIN_PASSWORD_HASH is not set — admin login (tracking management) will be DISABLED."
+  echo "         Generate one with 'make admin-hash' and export it (single-quoted) before running."
+fi
 
 BACKEND_PORT=8080   # must match PORT pinned for the backend in .railway/railway.ts
 FRONTEND_PORT=80    # must match PORT pinned for the frontend in .railway/railway.ts

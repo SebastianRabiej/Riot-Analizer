@@ -12,16 +12,27 @@ import { Trends } from './pages/Trends';
 import { Matches } from './pages/Matches';
 import { MatchDetail } from './pages/MatchDetail';
 import { Live } from './pages/Live';
+import { Login } from './pages/Login';
+import { AuthProvider, RequireAdmin } from './auth';
 
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <div className="app-shell">
         <TopBar />
         <main className="container page" style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/tracked" element={<ManageTracking />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/tracked"
+              element={
+                <RequireAdmin>
+                  <ManageTracking />
+                </RequireAdmin>
+              }
+            />
             <Route path="/player/:gameName/:tagLine" element={<PlayerShell />}>
               <Route index element={<Overview />} />
               <Route path="champions" element={<Champions />} />
@@ -40,6 +51,7 @@ export default function App() {
           Riot Analizer · unofficial · not endorsed by Riot Games · Champion & item art via Data Dragon
         </footer>
       </div>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

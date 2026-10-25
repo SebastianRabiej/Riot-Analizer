@@ -152,7 +152,7 @@ public class ScheduledFetcher {
             log.info("[{}] {} — {} new match(es){}; next check in {}", tag(player), player.getTrackingLevel(),
                     result.stored(), inGame ? ", in game" : "", delay);
         } else {
-            log.debug("[{}] {} up to date; next check in {}", tag(player), player.getTrackingLevel(), delay);
+            log.info("[{}] {} up to date; next check in {}", tag(player), player.getTrackingLevel(), delay);
         }
     }
 

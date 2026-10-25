@@ -23,4 +23,14 @@ public record PlayerDto(
         String newestMatchAt,
         String nextCheckAt
 ) {
+
+    /**
+     * The view for visitors who are not the admin: tracking state (whether the
+     * player is tracked/discovered and when the scheduler checks them next) is
+     * admin-only, so it is blanked out here.
+     */
+    public PlayerDto withoutTrackingInfo() {
+        return new PlayerDto(puuid, gameName, tagLine, summonerLevel, profileIconId, soloRank, flexRank,
+                false, lastFetched, null, null, backfillComplete, newestMatchAt, null);
+    }
 }

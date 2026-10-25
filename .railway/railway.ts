@@ -47,6 +47,13 @@ export default defineRailway(() => {
       // Secret kept OUT of git: supplied from the machine that runs `apply`.
       //   RIOT_API_KEY=xxx railway config apply
       RIOT_API_KEY: process.env.RIOT_API_KEY ?? "",
+      // Admin login: only the BCrypt hash, also supplied at apply time
+      // (generate with `make admin-hash`). Empty = admin login disabled.
+      //   ADMIN_PASSWORD_HASH='$2y$12$...' railway config apply
+      ADMIN_USERNAME: process.env.ADMIN_USERNAME ?? "admin",
+      ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH ?? "",
+      // Served over HTTPS on Railway, so session + CSRF cookies stay Secure.
+      APP_COOKIE_SECURE: "true",
       // Optional tuning (defaults already in application.yml):
       // RIOT_INITIAL_PLAYER: "Name#EUNE",
       // LOG_LEVEL: "INFO",

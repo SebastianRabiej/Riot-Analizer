@@ -10,12 +10,15 @@ export function PlayerHeader({
   onRefresh,
   tracking,
   onToggleTracked,
+  canManageTracking,
 }: {
   player: PlayerDto;
   refreshing: boolean;
   onRefresh: () => void;
   tracking: boolean;
   onToggleTracked: (next: boolean) => void;
+  /** Only the logged-in admin sees tracking state and controls. */
+  canManageTracking: boolean;
 }) {
   const last = player.lastFetched ? timeAgo(new Date(player.lastFetched).getTime()) : 'never';
   const isTracked = player.tracked;
@@ -36,10 +39,15 @@ export function PlayerHeader({
           <button className="panel-link" onClick={onRefresh} disabled={refreshing} type="button">
             {refreshing ? 'Refreshing…' : '↻ Refresh'}
           </button>
-          <span className="dot-sep">•</span>
-          <Link className="panel-link" to="/tracked">Manage tracking</Link>
+          {canManageTracking && (
+            <>
+              <span className="dot-sep">•</span>
+              <Link className="panel-link" to="/tracked">Manage tracking</Link>
+            </>
+          )}
         </div>
       </div>
+      {canManageTracking && (
       <div className="hero-actions">
         <button
           type="button"
@@ -53,6 +61,7 @@ export function PlayerHeader({
             : (isTracked ? '★ Tracking' : '☆ Track player')}
         </button>
       </div>
+      )}
       <div className="hero-ranks">
         <RankBadge label="Solo/Duo" rank={player.soloRank} />
         <RankBadge label="Flex" rank={player.flexRank} />
