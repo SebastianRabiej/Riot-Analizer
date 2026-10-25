@@ -206,9 +206,12 @@ export interface LiveParticipantDto {
   teamId: number;
   spell1Id: number;
   spell2Id: number;
+  // Solo-queue rank: tier/rank/leaguePoints when ranked, unranked=true when
+  // unranked, all absent when the lookup failed.
   tier?: string;
   rank?: string;
   leaguePoints?: number;
+  unranked?: boolean;
 }
 
 export interface LiveMatchDto {

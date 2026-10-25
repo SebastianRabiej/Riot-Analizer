@@ -5,7 +5,7 @@ import { useAsync } from '../hooks';
 import { usePlayerCtx } from '../playerContext';
 import { Panel, Loading, ErrorBox, EmptyState } from '../components/ui';
 import { ChampionIcon } from '../components/icons';
-import { parseRiotId, queueName, formatDuration } from '../util';
+import { parseRiotId, queueName, formatDuration, tierEmoji } from '../util';
 
 /** Cross-references one live participant against the tracked player's history. */
 function LiveRelation({ riotId }: { riotId: string }) {
@@ -37,8 +37,26 @@ function LiveRelation({ riotId }: { riotId: string }) {
   );
 }
 
+const APEX_TIERS = new Set(['MASTER', 'GRANDMASTER', 'CHALLENGER']);
+
+/** Solo-queue rank line; nothing when the rank couldn't be looked up. */
+function SoloRank({ p }: { p: LiveParticipantDto }) {
+  if (p.tier) {
+    const tier = p.tier.toUpperCase();
+    const division = APEX_TIERS.has(tier) ? '' : p.rank ?? '';
+    return (
+      <div className="lp-rank" title="Solo/Duo rank">
+        {tierEmoji(tier)}{' '}
+        <span className={`tier-${tier}`} style={{ fontWeight: 700 }}>{`${tier} ${division}`.trim()}</span>
+        {p.leaguePoints != null ? ` · ${p.leaguePoints} LP` : ''}
+      </div>
+    );
+  }
+  if (p.unranked) return <div className="lp-rank" title="Solo/Duo rank">Unranked</div>;
+  return null;
+}
+
 function Participant({ p, isMe }: { p: LiveParticipantDto; isMe: boolean }) {
-  const rank = p.tier ? `${p.tier} ${p.rank ?? ''}`.trim() : null;
   return (
     <div className="live-part">
       <ChampionIcon championName={p.championName} size={34} />
@@ -47,7 +65,7 @@ function Participant({ p, isMe }: { p: LiveParticipantDto; isMe: boolean }) {
           {p.riotId ?? 'Unknown'}
           {isMe && <span className="badge teal" style={{ marginLeft: 6 }}>You</span>}
         </div>
-        {rank && <div className="lp-rank">{rank}{p.leaguePoints != null ? ` · ${p.leaguePoints} LP` : ''}</div>}
+        <SoloRank p={p} />
       </div>
       <div className="lp-rel">
         {isMe ? <span className="note">—</span> : p.riotId ? <LiveRelation riotId={p.riotId} /> : <span className="note">—</span>}
@@ -86,7 +104,7 @@ export function Live() {
           <span className="dot-sep">•</span>
           <span>{queueName(data.queueId ?? 0, data.gameMode)}</span>
           {elapsed != null && elapsed > 0 && (<><span className="dot-sep">•</span><span className="tnum">{formatDuration(elapsed)} elapsed</span></>)}
-          <span className="right note">Rows show your shared history with each player</span>
+          <span className="right note">Rows show Solo/Duo rank and your shared history with each player</span>
         </div>
       </Panel>
 

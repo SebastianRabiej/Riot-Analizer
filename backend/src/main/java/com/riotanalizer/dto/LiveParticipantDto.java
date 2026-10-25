@@ -2,6 +2,10 @@ package com.riotanalizer.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+/**
+ * One player in a live game. Solo-queue rank: {@code tier/rank/leaguePoints} when
+ * ranked, {@code unranked = true} when unranked, all absent when the lookup failed.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LiveParticipantDto(
         String puuid,
@@ -13,6 +17,7 @@ public record LiveParticipantDto(
         int spell2Id,
         String tier,
         String rank,
-        Integer leaguePoints
+        Integer leaguePoints,
+        Boolean unranked
 ) {
 }
