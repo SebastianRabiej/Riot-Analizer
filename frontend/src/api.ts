@@ -1,6 +1,7 @@
 import type {
   PlayerDto,
   DiscoveredPageDto,
+  FetchQueueDto,
   PlayerStatsDto,
   MatchSummaryDto,
   LiveMatchDto,
@@ -302,6 +303,11 @@ export function getDiscovered(page = 0, size = 50, q?: string): Promise<Discover
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (q && q.trim()) params.set('q', q.trim());
   return request<DiscoveredPageDto>(`/discovered?${params.toString()}`);
+}
+
+/** Admin only: what the background scheduler is fetching now and next. */
+export function getFetchQueue(limit = 15): Promise<FetchQueueDto> {
+  return request<FetchQueueDto>(`/fetch-queue?limit=${limit}`);
 }
 
 export function getMatchDetail(matchId: string): Promise<MatchDetailDto> {

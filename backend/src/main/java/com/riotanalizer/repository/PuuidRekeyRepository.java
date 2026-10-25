@@ -2,6 +2,7 @@ package com.riotanalizer.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -13,6 +14,9 @@ import java.util.List;
  */
 @Repository
 public class PuuidRekeyRepository {
+
+    public record PendingPlayer(String puuid, String gameName, String tagLine) {
+    }
 
     public record ParticipantRow(long id, String puuid, Integer teamId, Integer championId,
                                  String riotIdGameName, String riotIdTagLine) {
@@ -60,9 +64,10 @@ public class PuuidRekeyRepository {
                      WHERE o.puuid = ? AND n.puuid = ?
                     """, oldPuuid, newPuuid);
             jdbc.update("DELETE FROM player WHERE puuid = ?", oldPuuid);
+            jdbc.update("UPDATE player SET puuid_check_pending = FALSE WHERE puuid = ?", newPuuid);
         } else {
             // summoner_id is encrypted per application too; the next profile refresh refills it.
-            jdbc.update("UPDATE player SET puuid = ?, summoner_id = NULL WHERE puuid = ?", newPuuid, oldPuuid);
+            jdbc.update("UPDATE player SET puuid = ?, summoner_id = NULL, puuid_check_pending = FALSE WHERE puuid = ?", newPuuid, oldPuuid);
         }
     }
 
@@ -92,16 +97,6 @@ public class PuuidRekeyRepository {
                 matchId);
     }
 
-    /** Queue every stored match for participant re-keying. Returns how many were newly queued. */
-    @Transactional
-    public int enqueueAllMatches() {
-        return jdbc.update("""
-                INSERT INTO puuid_rekey_pending (match_id)
-                SELECT match_id FROM matches
-                ON CONFLICT (match_id) DO NOTHING
-                """);
-    }
-
     /** Queue every stored match the given player took part in. Returns how many were newly queued. */
     @Transactional
     public int enqueueMatchesOf(String puuid) {
@@ -111,6 +106,50 @@ public class PuuidRekeyRepository {
                 ON CONFLICT (match_id) DO NOTHING
                 """, puuid);
     }
+
+    // ---- players flagged "to be checked" ----
+
+    /**
+     * Flag every player for a PUUID re-check. Own transaction so the flag sticks
+     * even if the request that hit the decryption error fails. Returns how many
+     * players were newly flagged (0 if a check is already in progress).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int markAllPlayersForCheck() {
+        return jdbc.update("UPDATE player SET puuid_check_pending = TRUE WHERE puuid_check_pending = FALSE");
+    }
+
+    /**
+     * Flagged players. {@code discovered=false}: TRACKED first, then NONE;
+     * {@code discovered=true}: DISCOVERED, shallowest first.
+     */
+    public List<PendingPlayer> playersPendingCheck(boolean discovered, int limit) {
+        return jdbc.query("""
+                        SELECT puuid, game_name, tag_line
+                          FROM player
+                         WHERE puuid_check_pending
+                           AND (tracking_level = 'DISCOVERED') = ?
+                         ORDER BY (tracking_level = 'TRACKED') DESC, discovery_depth NULLS LAST, puuid
+                         LIMIT ?
+                        """,
+                (rs, i) -> new PendingPlayer(rs.getString("puuid"), rs.getString("game_name"), rs.getString("tag_line")),
+                discovered, limit);
+    }
+
+    public long countPlayersPendingCheck(boolean discovered) {
+        Long n = jdbc.queryForObject("""
+                SELECT count(*) FROM player
+                 WHERE puuid_check_pending AND (tracking_level = 'DISCOVERED') = ?
+                """, Long.class, discovered);
+        return n == null ? 0 : n;
+    }
+
+    @Transactional
+    public void clearCheck(String puuid) {
+        jdbc.update("UPDATE player SET puuid_check_pending = FALSE WHERE puuid = ?", puuid);
+    }
+
+    // ---- matches queued for participant re-keying ----
 
     public List<String> nextPending(int limit) {
         return jdbc.queryForList(

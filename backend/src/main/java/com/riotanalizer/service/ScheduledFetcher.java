@@ -51,23 +51,26 @@ public class ScheduledFetcher {
     private final PlayerService playerService;
     private final FetchService fetchService;
     private final LiveGameService liveGameService;
-    private final PuuidMigrationGate migrationGate;
+
+    /** The player being checked right now (for the fetch-queue view); null when idle. */
+    public record Running(String puuid, String gameName, String tagLine, TrackingLevel level,
+                          boolean backfill, Instant startedAt) {
+    }
+
+    private volatile Running running;
+    private volatile Instant lastRunAt;
+    private volatile int lastRunChecked;
 
     public ScheduledFetcher(PlayerRepository players, PlayerService playerService, FetchService fetchService,
-                            LiveGameService liveGameService, PuuidMigrationGate migrationGate) {
+                            LiveGameService liveGameService) {
         this.players = players;
         this.playerService = playerService;
         this.fetchService = fetchService;
         this.liveGameService = liveGameService;
-        this.migrationGate = migrationGate;
     }
 
     @Scheduled(fixedDelayString = "${riot.scheduler-tick-ms:15000}")
     public void run() {
-        // Wait for the startup PUUID key check so we never call Riot with stale PUUIDs.
-        if (!migrationGate.awaitOpen()) {
-            return;
-        }
         int tracked = 0;
         int discovered = 0;
         for (int i = 0; i < MAX_PLAYERS_PER_TICK; i++) {
@@ -81,11 +84,32 @@ public class ScheduledFetcher {
             } else {
                 discovered++;
             }
-            process(player);
+            running = new Running(player.getPuuid(), player.getGameName(), player.getTagLine(),
+                    player.getTrackingLevel(), !player.isBackfillComplete() || player.getNewestMatchAt() == null,
+                    Instant.now());
+            try {
+                process(player);
+            } finally {
+                running = null;
+            }
         }
+        lastRunAt = Instant.now();
+        lastRunChecked = tracked + discovered;
         if (tracked + discovered > 0) {
             log.info("Scheduler tick: checked {} tracked and {} discovered player(s)", tracked, discovered);
         }
+    }
+
+    public Optional<Running> running() {
+        return Optional.ofNullable(running);
+    }
+
+    public Optional<Instant> lastRunAt() {
+        return Optional.ofNullable(lastRunAt);
+    }
+
+    public int lastRunChecked() {
+        return lastRunChecked;
     }
 
     /** The single most important player that is due now, if any. */

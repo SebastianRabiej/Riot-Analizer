@@ -42,6 +42,47 @@ export interface DiscoveredPageDto {
   players: PlayerDto[];
 }
 
+/** One player in the background scheduler's queue (GET /api/fetch-queue). */
+export interface FetchQueueEntry {
+  /** 1-based place in the "up next" order; null for players not due yet. */
+  position: number | null;
+  puuid: string;
+  gameName: string | null;
+  tagLine: string | null;
+  profileIconId: number;
+  trackingLevel: TrackingLevel;
+  discoveryDepth: number | null;
+  nextCheckAt: string | null; // ISO; null = never checked
+  newestMatchAt: string | null;
+  /** HEAD_CHECK = 1-call "anything new?"; BACKFILL = still walking the season. */
+  checkType: 'HEAD_CHECK' | 'BACKFILL';
+  steps: string[];
+  minCalls: number;
+  maxCalls: number;
+  reason: string;
+  inGame: boolean | null;
+}
+
+export interface FetchQueueDto {
+  generatedAt: string;
+  schedulerTickMs: number;
+  lastRunAt: string | null;
+  lastRunChecked: number;
+  running: {
+    puuid: string;
+    gameName: string | null;
+    tagLine: string | null;
+    trackingLevel: TrackingLevel;
+    startedAt: string;
+    checkType: 'HEAD_CHECK' | 'BACKFILL';
+  } | null;
+  dueTracked: number;
+  dueDiscovered: number;
+  next: FetchQueueEntry[];
+  upcomingTracked: FetchQueueEntry[];
+  upcomingDiscovered: FetchQueueEntry[];
+}
+
 export interface ChampionStatDto {
   championId: number;
   championName: string;

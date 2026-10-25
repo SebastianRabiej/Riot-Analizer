@@ -85,7 +85,7 @@ riot:
   fetch-batch-size: ${RIOT_FETCH_BATCH_SIZE:25}
   max-history-matches: ${RIOT_MAX_HISTORY_MATCHES:2000}
   # Background re-key of stored match participants after the API key moved to
-  # another Riot application (see PuuidMigrationRunner / PuuidRekeyWorker).
+  # another Riot application (see PlayerRekeyService / PuuidRekeyWorker).
   puuid-rekey-batch-size: ${RIOT_PUUID_REKEY_BATCH_SIZE:20}
   puuid-rekey-interval-ms: ${RIOT_PUUID_REKEY_INTERVAL_MS:5000}
   # Players met in tracked players' matches become DISCOVERED and get their

@@ -13,6 +13,7 @@ import com.riotanalizer.ratelimit.RiotRateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -37,13 +38,16 @@ public class RiotApiClient {
     private final RestClient platform;
     private final RestClient regional;
     private final RiotRateLimiter rateLimiter;
+    private final ApplicationEventPublisher events;
 
     public RiotApiClient(@Qualifier(RestClientConfig.PLATFORM) RestClient platform,
                          @Qualifier(RestClientConfig.REGIONAL) RestClient regional,
-                         RiotRateLimiter rateLimiter) {
+                         RiotRateLimiter rateLimiter,
+                         ApplicationEventPublisher events) {
         this.platform = platform;
         this.regional = regional;
         this.rateLimiter = rateLimiter;
+        this.events = events;
     }
 
     // ---- ACCOUNT-V1 (regional) ----
@@ -51,17 +55,6 @@ public class RiotApiClient {
     public AccountDto getAccountByRiotId(String gameName, String tagLine) {
         return call("account by-riot-id " + gameName + "#" + tagLine, () -> regional.get()
                 .uri("/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}", gameName, tagLine)
-                .retrieve()
-                .body(AccountDto.class));
-    }
-
-    /**
-     * Account by PUUID. Cheap probe used at startup: Riot answers 400
-     * "Exception decrypting" when the PUUID was issued for another API key.
-     */
-    public AccountDto getAccountByPuuid(String puuid) {
-        return call("account by-puuid", () -> regional.get()
-                .uri("/riot/account/v1/accounts/by-puuid/{puuid}", puuid)
                 .retrieve()
                 .body(AccountDto.class));
     }
@@ -170,7 +163,11 @@ public class RiotApiClient {
             return new RateLimitedException("Riot API rate limit exceeded");
         }
         String riotMessage = extractRiotMessage(e.getResponseBodyAsString());
-        return new RiotApiException(status, describeError(status, e.getStatusText(), riotMessage), riotMessage);
+        RiotApiException ex = new RiotApiException(status, describeError(status, e.getStatusText(), riotMessage), riotMessage);
+        if (ex.isDecryptionError()) {
+            events.publishEvent(new PuuidKeyMismatchEvent(riotMessage));
+        }
+        return ex;
     }
 
     /**

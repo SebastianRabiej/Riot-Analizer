@@ -5,11 +5,12 @@ import { getDiscovered, getTracked, trackPlayer, untrackPlayer } from '../api';
 import { useAsync } from '../hooks';
 import { Panel, Loading, ErrorBox, EmptyState } from '../components/ui';
 import { ProfileIcon } from '../components/icons';
+import { FetchQueuePanel } from '../components/FetchQueue';
 import { parseRiotId, tierEmoji, timeAgo, riotIdString } from '../util';
 
 const PAGE_SIZE = 50;
 
-type Tab = 'tracked' | 'discovered';
+type Tab = 'tracked' | 'discovered' | 'queue';
 
 function rankLine(p: PlayerDto): string {
   const r = p.soloRank;
@@ -92,7 +93,8 @@ function PlayerRow({
 export function ManageTracking() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'discovered' ? 'discovered' : 'tracked';
+  const tabParam = params.get('tab');
+  const tab: Tab = tabParam === 'discovered' || tabParam === 'queue' ? tabParam : 'tracked';
   const setTab = (t: Tab) => setParams(t === 'tracked' ? {} : { tab: t }, { replace: true });
 
   const [reloadKey, setReloadKey] = useState(0);
@@ -193,6 +195,10 @@ export function ManageTracking() {
           aria-selected={tab === 'discovered'} onClick={() => setTab('discovered')}>
           <span className="tab-ico">🔭</span> Discovered{d ? ` (${d.total})` : ''}
         </button>
+        <button type="button" role="tab" className={`tab ${tab === 'queue' ? 'active' : ''}`}
+          aria-selected={tab === 'queue'} onClick={() => setTab('queue')}>
+          <span className="tab-ico">⏱</span> Fetch queue
+        </button>
       </div>
 
       {tab === 'tracked' && (
@@ -221,6 +227,8 @@ export function ManageTracking() {
           )}
         </Panel>
       )}
+
+      {tab === 'queue' && <FetchQueuePanel />}
 
       {tab === 'discovered' && (
         <Panel

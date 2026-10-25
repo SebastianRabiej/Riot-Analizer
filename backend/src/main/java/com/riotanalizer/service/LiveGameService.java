@@ -40,6 +40,11 @@ public class LiveGameService {
         return refresh(puuid);
     }
 
+    /** Last known live-game state without calling Riot; empty if never looked up. */
+    public Optional<Boolean> cachedInGame(String puuid) {
+        return Optional.ofNullable(cache.get(puuid)).map(LiveMatchDto::inGame);
+    }
+
     @Transactional(readOnly = true)
     public LiveMatchDto refresh(String puuid) {
         Optional<JsonNode> game = riot.getActiveGameByPuuid(puuid);

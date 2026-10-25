@@ -40,4 +40,20 @@ public interface PlayerRepository extends JpaRepository<Player, String> {
             order by p.discoveryDepth asc nulls first, p.nextCheckAt asc nulls first, p.puuid
             """)
     List<Player> findDue(@Param("level") TrackingLevel level, @Param("now") Instant now, Pageable page);
+
+    @Query("""
+            select count(p) from Player p
+            where p.trackingLevel = :level
+              and (p.nextCheckAt is null or p.nextCheckAt <= :now)
+            """)
+    long countDue(@Param("level") TrackingLevel level, @Param("now") Instant now);
+
+    /** Players of one tracking level that are not due yet, soonest first. */
+    @Query("""
+            select p from Player p
+            where p.trackingLevel = :level
+              and p.nextCheckAt > :now
+            order by p.nextCheckAt asc, p.puuid
+            """)
+    List<Player> findUpcoming(@Param("level") TrackingLevel level, @Param("now") Instant now, Pageable page);
 }

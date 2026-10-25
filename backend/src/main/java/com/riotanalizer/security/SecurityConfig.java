@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/players/*/*/track").hasRole(AdminAccess.ROLE)
                         .requestMatchers("/api/tracked", "/api/tracked/**").hasRole(AdminAccess.ROLE)
                         .requestMatchers("/api/discovered", "/api/discovered/**").hasRole(AdminAccess.ROLE)
+                        .requestMatchers("/api/fetch-queue").hasRole(AdminAccess.ROLE)
                         .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) ->

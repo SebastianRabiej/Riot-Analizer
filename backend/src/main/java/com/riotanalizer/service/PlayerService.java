@@ -74,7 +74,8 @@ public class PlayerService {
 
     /**
      * Refresh summoner + rank info from Riot and persist. If Riot rejects the
-     * stored PUUID as issued for another API key, the player is re-keyed first.
+     * stored PUUID as issued for another API key, this player is re-keyed right
+     * away (the rest get flagged and re-checked by {@link PuuidRekeyWorker}).
      * Always continue with the returned player — its PUUID may have changed.
      */
     @Transactional
