@@ -20,16 +20,22 @@ public class ScheduledFetcher {
     private final PlayerService playerService;
     private final FetchService fetchService;
     private final LiveGameService liveGameService;
+    private final PuuidMigrationGate migrationGate;
 
     public ScheduledFetcher(PlayerService playerService, FetchService fetchService,
-                            LiveGameService liveGameService) {
+                            LiveGameService liveGameService, PuuidMigrationGate migrationGate) {
         this.playerService = playerService;
         this.fetchService = fetchService;
         this.liveGameService = liveGameService;
+        this.migrationGate = migrationGate;
     }
 
     @Scheduled(fixedDelayString = "${riot.fetch-interval-ms:600000}")
     public void run() {
+        // Wait for the startup PUUID key check so we never call Riot with stale PUUIDs.
+        if (!migrationGate.awaitOpen()) {
+            return;
+        }
         List<Player> tracked = playerService.trackedPlayers();
         if (tracked.isEmpty()) {
             return;

@@ -1,6 +1,7 @@
 package com.riotanalizer.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riotanalizer.client.dto.AccountDto;
 import com.riotanalizer.client.dto.LeagueEntryDto;
 import com.riotanalizer.client.dto.SummonerDto;
@@ -29,6 +30,8 @@ import java.util.function.Supplier;
 public class RiotApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(RiotApiClient.class);
+    private static final ObjectMapper ERROR_MAPPER = new ObjectMapper();
+    private static final int MAX_RAW_BODY_IN_MESSAGE = 300;
 
     private final RestClient platform;
     private final RestClient regional;
@@ -47,6 +50,17 @@ public class RiotApiClient {
     public AccountDto getAccountByRiotId(String gameName, String tagLine) {
         return call("account by-riot-id " + gameName + "#" + tagLine, () -> regional.get()
                 .uri("/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}", gameName, tagLine)
+                .retrieve()
+                .body(AccountDto.class));
+    }
+
+    /**
+     * Account by PUUID. Cheap probe used at startup: Riot answers 400
+     * "Exception decrypting" when the PUUID was issued for another API key.
+     */
+    public AccountDto getAccountByPuuid(String puuid) {
+        return call("account by-puuid", () -> regional.get()
+                .uri("/riot/account/v1/accounts/by-puuid/{puuid}", puuid)
                 .retrieve()
                 .body(AccountDto.class));
     }
@@ -140,8 +154,9 @@ public class RiotApiClient {
         try {
             return supplier.get();
         } catch (RestClientResponseException e) {
-            log.debug("Riot API ← {} failed: {} {}", desc, e.getStatusCode().value(), e.getStatusText());
-            throw translate(e);
+            RuntimeException translated = translate(e);
+            log.debug("Riot API ← {} failed: {}", desc, translated.getMessage());
+            throw translated;
         }
     }
 
@@ -153,6 +168,59 @@ public class RiotApiClient {
         if (status == 429) {
             return new RateLimitedException("Riot API rate limit exceeded");
         }
-        return new RiotApiException(status, "Riot API error: " + status + " " + e.getStatusText());
+        String riotMessage = extractRiotMessage(e.getResponseBodyAsString());
+        return new RiotApiException(status, describeError(status, e.getStatusText(), riotMessage), riotMessage);
+    }
+
+    /**
+     * Human-readable error, including Riot's own explanation and a hint for the
+     * common causes, e.g.
+     * {@code Riot API error: 400 Bad Request – Exception decrypting ... (hint: ...)}.
+     */
+    static String describeError(int status, String statusText, String riotMessage) {
+        StringBuilder msg = new StringBuilder("Riot API error: ").append(status);
+        if (statusText != null && !statusText.isBlank()) {
+            msg.append(' ').append(statusText.trim());
+        }
+        if (riotMessage != null && !riotMessage.isBlank()
+                && !riotMessage.trim().equalsIgnoreCase(String.valueOf(statusText).trim())) {
+            msg.append(" – ").append(riotMessage.trim());
+        }
+        if (RiotApiException.isDecryptionError(status, riotMessage)) {
+            msg.append(" (hint: this PUUID/summonerId was issued for a different API key's application,"
+                    + " e.g. stored with a development key and now used with a personal/production key;"
+                    + " it must be re-resolved by Riot ID with the current key)");
+        } else if (status == 401) {
+            msg.append(" (hint: no API key sent – check RIOT_API_KEY)");
+        } else if (status == 403) {
+            msg.append(" (hint: API key is invalid/expired, or it has no access to this endpoint)");
+        }
+        return msg.toString();
+    }
+
+    /**
+     * Riot error bodies look like {@code {"status":{"message":"...","status_code":400}}}.
+     * Returns {@code status.message}, a truncated raw body if it isn't that
+     * shape, or {@code null} for an empty body.
+     */
+    static String extractRiotMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode node = ERROR_MAPPER.readTree(body);
+            JsonNode message = node.path("status").path("message");
+            if (message.isTextual() && !message.asText().isBlank()) {
+                return message.asText();
+            }
+            JsonNode top = node.path("message");
+            if (top.isTextual() && !top.asText().isBlank()) {
+                return top.asText();
+            }
+        } catch (Exception ignored) {
+            // not JSON – fall through to the raw body
+        }
+        String raw = body.strip();
+        return raw.length() > MAX_RAW_BODY_IN_MESSAGE ? raw.substring(0, MAX_RAW_BODY_IN_MESSAGE) + "…" : raw;
     }
 }

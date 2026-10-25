@@ -17,6 +17,11 @@ spring:
     baseline-on-migrate: true
     baseline-version: 1
     baseline-description: "Adopt existing Hibernate-generated schema"
+  task:
+    scheduling:
+      pool:
+        # ScheduledFetcher + PuuidRekeyWorker run independently.
+        size: 2
   jpa:
     hibernate:
       ddl-auto: validate
@@ -52,3 +57,7 @@ riot:
   match-page-size: ${RIOT_MATCH_PAGE_SIZE:100}
   fetch-batch-size: ${RIOT_FETCH_BATCH_SIZE:25}
   max-history-matches: ${RIOT_MAX_HISTORY_MATCHES:2000}
+  # Background re-key of stored match participants after the API key moved to
+  # another Riot application (see PuuidMigrationRunner / PuuidRekeyWorker).
+  puuid-rekey-batch-size: ${RIOT_PUUID_REKEY_BATCH_SIZE:20}
+  puuid-rekey-interval-ms: ${RIOT_PUUID_REKEY_INTERVAL_MS:5000}
