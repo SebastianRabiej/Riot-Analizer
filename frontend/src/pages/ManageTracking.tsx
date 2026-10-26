@@ -34,8 +34,19 @@ function nextCheckLabel(iso: string | null | undefined): string {
 }
 
 /** Freshness of a player's stored history, as shown under their name. */
-function SyncLine({ p }: { p: PlayerDto }) {
+function SyncLine({ p, profileOnly }: { p: PlayerDto; profileOnly?: boolean }) {
   const synced = p.backfillComplete === true;
+  if (profileOnly) {
+    return (
+      <div className="tc-meta">
+        <span className={`badge ${p.lastFetched ? 'teal' : ''}`}
+          title="Discovered players get only profile & rank (refreshed about weekly) — match history is off">
+          {p.lastFetched ? 'Profile fetched' : 'Profile pending'}
+        </span>
+        {' · '}next check {nextCheckLabel(p.nextCheckAt)}
+      </div>
+    );
+  }
   return (
     <div className="tc-meta">
       <span className={`badge ${synced ? 'teal' : ''}`} title={synced
@@ -54,10 +65,12 @@ function PlayerRow({
   p,
   onOpen,
   actions,
+  profileOnly,
 }: {
   p: PlayerDto;
   onOpen: (p: PlayerDto) => void;
   actions: React.ReactNode;
+  profileOnly?: boolean;
 }) {
   const discovered = p.trackingLevel === 'DISCOVERED';
   return (
@@ -80,7 +93,7 @@ function PlayerRow({
             ? `${rankLine(p)} · lvl ${p.summonerLevel} · profile updated ${timeAgo(new Date(p.lastFetched).getTime())}`
             : 'Profile not fetched yet'}
         </div>
-        <SyncLine p={p} />
+        <SyncLine p={p} profileOnly={profileOnly} />
       </div>
       <div className="tc-actions">
         <button className="btn btn-sm" type="button" onClick={() => onOpen(p)}>Open</button>
@@ -234,7 +247,9 @@ export function ManageTracking() {
         <Panel
           title={d ? `${d.total} discovered` : 'Loading…'}
           sub={d && d.total > 0
-            ? `${d.seasonSynced} of ${d.total} have their whole season stored. They're fetched only when no tracked player needs anything.`
+            ? d.fetchMatches
+              ? `${d.profileFetched} of ${d.total} have profile & rank fetched · ${d.seasonSynced} have their whole season stored. They're fetched only when no tracked player needs anything.`
+              : `${d.profileFetched} of ${d.total} have profile & rank fetched (profile only — match history is off). ${d.seasonSynced} have a full season stored from before.`
             : 'Players who appear in your tracked players’ matches show up here.'}
         >
           <div className="search block" style={{ maxWidth: 460, marginBottom: 12 }}>
@@ -254,7 +269,7 @@ export function ManageTracking() {
           {d && d.players.length > 0 && (
             <div className="stack track-list" style={{ gap: 10 }}>
               {d.players.map((p) => (
-                <PlayerRow key={p.puuid} p={p} onOpen={open} actions={
+                <PlayerRow key={p.puuid} p={p} onOpen={open} profileOnly={!d.fetchMatches} actions={
                   <button
                     className="btn btn-sm"
                     type="button"

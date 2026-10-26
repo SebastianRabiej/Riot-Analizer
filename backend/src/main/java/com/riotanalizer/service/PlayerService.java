@@ -12,6 +12,7 @@ import com.riotanalizer.dto.RankDto;
 import com.riotanalizer.exception.NotFoundException;
 import com.riotanalizer.exception.RiotApiException;
 import com.riotanalizer.repository.PlayerRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,6 +29,10 @@ public class PlayerService {
     private static final String FLEX_QUEUE = "RANKED_FLEX_SR";
 
     private final RiotApiClient riot;
+
+    /** {@code riot.discovery-fetch-matches}, shown on the discovered page. */
+    @Value("${riot.discovery-fetch-matches:false}")
+    private boolean discoveredFetchMatches;
     private final PlayerRepository players;
     private final FetchService fetchService;
     private final PlayerRekeyService playerRekey;
@@ -230,6 +235,8 @@ public class PlayerService {
         return new DiscoveredPageDto(
                 players.countByTrackingLevel(TrackingLevel.DISCOVERED),
                 players.countByTrackingLevelAndBackfillCompleteTrue(TrackingLevel.DISCOVERED),
+                players.countByTrackingLevelAndLastFetchedIsNotNull(TrackingLevel.DISCOVERED),
+                discoveredFetchMatches,
                 result.getTotalElements(),
                 safePage,
                 safeSize,

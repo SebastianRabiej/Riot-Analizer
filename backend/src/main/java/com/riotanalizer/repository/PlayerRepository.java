@@ -24,6 +24,8 @@ public interface PlayerRepository extends JpaRepository<Player, String> {
 
     long countByTrackingLevelAndBackfillCompleteTrue(TrackingLevel trackingLevel);
 
+    long countByTrackingLevelAndLastFetchedIsNotNull(TrackingLevel trackingLevel);
+
     Page<Player> findByTrackingLevel(TrackingLevel trackingLevel, Pageable page);
 
     Page<Player> findByTrackingLevelAndGameNameContainingIgnoreCase(TrackingLevel trackingLevel, String gameName,

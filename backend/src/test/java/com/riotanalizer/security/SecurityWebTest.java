@@ -97,7 +97,7 @@ class SecurityWebTest {
                 true, null, "TRACKED", 0, true, null, "2026-10-25T12:00:00Z"));
         when(playerService.trackedPlayers()).thenReturn(List.of());
         when(playerService.discovered(anyInt(), anyInt(), any()))
-                .thenReturn(new DiscoveredPageDto(0, 0, 0, 0, 50, List.of()));
+                .thenReturn(new DiscoveredPageDto(0, 0, 0, false, 0, 0, 50, List.of()));
     }
 
     /** Fetches a fresh XSRF-TOKEN cookie, like the SPA does on load. */

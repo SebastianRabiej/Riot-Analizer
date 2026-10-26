@@ -36,6 +36,10 @@ export type TrackingLevel = 'TRACKED' | 'DISCOVERED' | 'NONE';
 export interface DiscoveredPageDto {
   total: number;
   seasonSynced: number;
+  /** Discovered players whose profile & rank have been fetched at least once. */
+  profileFetched: number;
+  /** false = discovered players are profile only (no match history fetched). */
+  fetchMatches: boolean;
   matching: number;
   page: number;
   size: number;
