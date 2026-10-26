@@ -584,15 +584,41 @@ tr.me-row td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
 .event-row .champ-icon, .event-row .icon-fallback { border-radius: 5px; flex-shrink: 0; }
 
 .timeline-scrubber { margin-top: 15px; border-top: 1px solid var(--border); padding-top: 13px; }
-.tl-track { position: relative; height: 20px; margin: 0 3px; }
-.tl-tick {
-  position: absolute; top: 3px; width: 3px; height: 13px; margin-left: -1.5px;
-  border: none; border-radius: 2px; padding: 0; opacity: 0.5; cursor: pointer;
-  transition: opacity .12s, height .12s, top .12s;
+.tl-track {
+  position: relative; height: 34px; margin: 18px 9px 0; cursor: pointer;
+  touch-action: none; user-select: none; outline: none;
 }
-.tl-tick:hover { opacity: 1; }
-.tl-tick.on { opacity: 1; height: 19px; top: 0; box-shadow: 0 0 0 2px var(--bg); z-index: 2; }
-.tl-range { width: 100%; margin: 5px 0 11px; accent-color: var(--teal); cursor: pointer; }
+.tl-track:focus-visible { box-shadow: 0 0 0 2px var(--teal); border-radius: 6px; }
+.tl-rail, .tl-fill {
+  position: absolute; left: 0; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; pointer-events: none;
+}
+.tl-rail { right: 0; background: var(--panel-3); }
+.tl-fill { background: var(--teal); opacity: 0.35; }
+.tl-tick {
+  position: absolute; top: 50%; width: 3px; height: 16px; margin: -8px 0 0 -1.5px;
+  border-radius: 2px; opacity: 0.55; pointer-events: none;
+  transition: opacity .12s, height .12s, margin .12s;
+}
+.tl-tick.near { opacity: 1; height: 22px; margin-top: -11px; }
+.tl-tick.on { opacity: 1; height: 24px; margin-top: -12px; z-index: 2; }
+.tl-thumb {
+  position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  border-radius: 50%; background: var(--text); border: 3px solid var(--teal);
+  box-shadow: 0 0 0 3px var(--bg), 0 1px 4px rgba(0,0,0,.5);
+  pointer-events: none; z-index: 3; transition: left .08s ease-out;
+}
+.tl-track.dragging .tl-thumb { transition: none; }
+.tl-thumb-time, .tl-hover {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
+}
+.tl-thumb-time { margin-bottom: 7px; color: var(--text); font-weight: 600; }
+.tl-hover {
+  top: 100%; bottom: auto; margin-top: -3px; color: var(--text-2);
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px;
+  z-index: 4;
+}
+.tl-axis { display: flex; justify-content: space-between; margin: 2px 9px 11px; font-size: 11px; }
 .tl-desc { display: flex; align-items: center; gap: 10px; }
 .tl-nav {
   width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px;

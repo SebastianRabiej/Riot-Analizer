@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import type { TimelineParticipant, TimelineEvent } from '../types';
 import { getMatchAnalysis } from '../api';
@@ -58,6 +58,9 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
   const [hover, setHover] = useState<{ x: number; y: number; content: ReactNode } | null>(null);
   const [selectedDeath, setSelectedDeath] = useState<number | null>(null);
   const [curIdx, setCurIdx] = useState<number | null>(null);
+  const [scrubHover, setScrubHover] = useState<number | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
 
   const d = useMemo(() => {
     if (!data) return null;
@@ -316,6 +319,47 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
     setCurIdx(i);
     requestAnimationFrame(() => document.getElementById(`ev-row-${i}`)?.scrollIntoView({ block: 'nearest' }));
   };
+  // Scrubber: ticks, thumb and pointer all share one time axis (0 → endMs),
+  // so the thumb always sits exactly on the event it selects.
+  const tlPct = (ts: number) => `${clamp(ts / endMs, 0, 1) * 100}%`;
+  const nearestEventAt = (clientX: number): number | null => {
+    const el = trackRef.current;
+    if (!el || timelineEvents.length === 0) return null;
+    const r = el.getBoundingClientRect();
+    const t = clamp((clientX - r.left) / (r.width || 1), 0, 1) * endMs;
+    let best = 0;
+    for (let i = 1; i < timelineEvents.length; i++) {
+      if (Math.abs(timelineEvents[i].ts - t) < Math.abs(timelineEvents[best].ts - t)) best = i;
+    }
+    return best;
+  };
+  const onScrubDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.focus();
+    const i = nearestEventAt(e.clientX);
+    if (i != null) selectEvent(i);
+  };
+  const onScrubMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const i = nearestEventAt(e.clientX);
+    setScrubHover(i);
+    if (dragging && i != null && i !== curIdx) selectEvent(i);
+  };
+  const onScrubUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    setDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+  const onScrubKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = timelineEvents.length - 1;
+    let next: number | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.min(last, (curIdx ?? -1) + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.max(0, (curIdx ?? 1) - 1);
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = last;
+    if (next != null) { e.preventDefault(); selectEvent(next); }
+  };
+  const hoverEvt = scrubHover != null && scrubHover !== curIdx ? timelineEvents[scrubHover] ?? null : null;
   const evActor = (ev: MapEvent) => (ev.raw ? d.champName(ev.raw.killerId) : '?');
   const evShort = (ev: MapEvent) => {
     if (ev.obj) return <><span className="ev-strong">{ev.obj.kind}</span> · {ev.obj.byMyTeam ? 'your team' : 'enemy team'}</>;
@@ -469,31 +513,49 @@ export function MatchAnalysis({ matchId, mePuuid }: { matchId: string; mePuuid: 
           </div>
           {timelineEvents.length > 0 && (
             <div className="timeline-scrubber">
-              <div className="tl-track" aria-hidden="true">
+              <div
+                ref={trackRef}
+                className={`tl-track ${dragging ? 'dragging' : ''}`}
+                role="slider"
+                tabIndex={0}
+                aria-label="Game timeline — step through events"
+                aria-valuemin={0}
+                aria-valuemax={timelineEvents.length - 1}
+                aria-valuenow={curIdx ?? 0}
+                aria-valuetext={curEvt ? mmss(curEvt.ts) : 'No event selected'}
+                onPointerDown={onScrubDown}
+                onPointerMove={onScrubMove}
+                onPointerUp={onScrubUp}
+                onPointerCancel={onScrubUp}
+                onPointerLeave={() => setScrubHover(null)}
+                onKeyDown={onScrubKey}
+              >
+                <div className="tl-rail" />
+                {curEvt && <div className="tl-fill" style={{ width: tlPct(curEvt.ts) }} />}
                 {timelineEvents.map((ev, i) => (
-                  <button
+                  <span
                     key={i}
-                    type="button"
-                    className={`tl-tick ${ev.cat} ${i === curIdx ? 'on' : ''}`}
-                    style={{ left: `${(ev.ts / endMs) * 100}%`, background: CAT_COLOR[ev.cat] }}
-                    title={mmss(ev.ts)}
-                    onClick={() => selectEvent(i)}
+                    className={`tl-tick ${ev.cat} ${i === curIdx ? 'on' : ''} ${i === scrubHover && i !== curIdx ? 'near' : ''}`}
+                    style={{ left: tlPct(ev.ts), background: CAT_COLOR[ev.cat] }}
                   />
                 ))}
+                {hoverEvt && (
+                  <div className="tl-hover" style={{ left: tlPct(hoverEvt.ts) }}>{mmss(hoverEvt.ts)}</div>
+                )}
+                {curEvt && (
+                  <div className="tl-thumb" style={{ left: tlPct(curEvt.ts), borderColor: CAT_COLOR[curEvt.cat] }}>
+                    <span className="tl-thumb-time">{mmss(curEvt.ts)}</span>
+                  </div>
+                )}
               </div>
-              <input
-                className="tl-range"
-                type="range"
-                min={0}
-                max={timelineEvents.length - 1}
-                step={1}
-                value={curIdx ?? 0}
-                onChange={(e) => selectEvent(Number(e.target.value))}
-              />
+              <div className="tl-axis note">
+                <span>0:00</span>
+                <span>{mmss(endMs)}</span>
+              </div>
               <div className="tl-desc">
                 <button type="button" className="tl-nav" disabled={curIdx == null || curIdx <= 0} onClick={() => selectEvent((curIdx ?? 0) - 1)} title="Previous event">‹</button>
                 <div className="tl-desc-body">
-                  {curEvt ? evDesc(curEvt) : <span className="note">Drag the slider or pick an event to step through the game — {timelineEvents.length} in total.</span>}
+                  {curEvt ? evDesc(curEvt) : <span className="note">Click or drag along the timeline (or use ← →) to step through the game — {timelineEvents.length} in total.</span>}
                 </div>
                 <button type="button" className="tl-nav" disabled={curIdx != null && curIdx >= timelineEvents.length - 1} onClick={() => selectEvent((curIdx ?? -1) + 1)} title="Next event">›</button>
               </div>
