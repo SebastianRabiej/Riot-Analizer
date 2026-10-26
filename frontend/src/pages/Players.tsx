@@ -10,7 +10,7 @@ type Mode = 'duos' | 'opponents';
 type SortKey = 'games' | 'winRate';
 
 export function Players() {
-  const { gameName, tagLine, refreshKey } = usePlayerCtx();
+  const { gameName, tagLine, queue, refreshKey } = usePlayerCtx();
   const base = `/player/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('duos');
@@ -19,8 +19,8 @@ export function Players() {
   const [input, setInput] = useState('');
   const [err, setErr] = useState(false);
 
-  const duos = useAsync(() => getTeammates(gameName, tagLine, minGames, 300), [gameName, tagLine, minGames, refreshKey]);
-  const opps = useAsync(() => getOpponents(gameName, tagLine, minGames, 300), [gameName, tagLine, minGames, refreshKey]);
+  const duos = useAsync(() => getTeammates(gameName, tagLine, minGames, 300, queue), [gameName, tagLine, minGames, queue, refreshKey]);
+  const opps = useAsync(() => getOpponents(gameName, tagLine, minGames, 300, queue), [gameName, tagLine, minGames, queue, refreshKey]);
   const active = mode === 'duos' ? duos : opps;
 
   const sorted = useMemo(() => {

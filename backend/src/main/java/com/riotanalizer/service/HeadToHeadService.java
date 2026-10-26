@@ -25,10 +25,10 @@ public class HeadToHeadService {
     }
 
     @Transactional(readOnly = true)
-    public HeadToHeadDto compute(Player player, Player opponent) {
+    public HeadToHeadDto compute(Player player, Player opponent, Integer queueId) {
         long seasonStart = props.getCurrentSeasonStartEpochMs();
         List<Participant> playerRows = participants.findSharedSeasonParticipations(
-                player.getPuuid(), opponent.getPuuid(), seasonStart);
+                player.getPuuid(), opponent.getPuuid(), seasonStart, queueId);
 
         int sameTeamGames = 0;
         int opposingGames = 0;

@@ -120,10 +120,11 @@ public class PlayerController {
 
     @GetMapping("/players/{gameName}/{tagLine}/vs/{oppGameName}/{oppTagLine}")
     public HeadToHeadDto vsPlayer(@PathVariable String gameName, @PathVariable String tagLine,
-                                  @PathVariable String oppGameName, @PathVariable String oppTagLine) {
+                                  @PathVariable String oppGameName, @PathVariable String oppTagLine,
+                                  @RequestParam(required = false) Integer queue) {
         Player player = playerService.getOrRegister(gameName, tagLine);
         Player opponent = playerService.getOrRegister(oppGameName, oppTagLine);
-        return headToHeadService.compute(player, opponent);
+        return headToHeadService.compute(player, opponent, queue);
     }
 
     @GetMapping("/players/{gameName}/{tagLine}/vs-champion/{championName}")
@@ -136,28 +137,31 @@ public class PlayerController {
     /** "Vs player" dashboard: every opponent faced this season (min games filter). */
     @GetMapping("/players/{gameName}/{tagLine}/opponents")
     public List<OpponentSummaryDto> opponents(@PathVariable String gameName, @PathVariable String tagLine,
+                                              @RequestParam(required = false) Integer queue,
                                               @RequestParam(defaultValue = "2") int minGames,
                                               @RequestParam(defaultValue = "200") int limit) {
         Player player = playerService.getOrRegister(gameName, tagLine);
-        return matchupsService.opponents(player, minGames, limit);
+        return matchupsService.opponents(player, queue, minGames, limit);
     }
 
     /** "With player" (duo) dashboard: every teammate played alongside this season. */
     @GetMapping("/players/{gameName}/{tagLine}/teammates")
     public List<TeammateSummaryDto> teammates(@PathVariable String gameName, @PathVariable String tagLine,
+                                              @RequestParam(required = false) Integer queue,
                                               @RequestParam(defaultValue = "2") int minGames,
                                               @RequestParam(defaultValue = "200") int limit) {
         Player player = playerService.getOrRegister(gameName, tagLine);
-        return matchupsService.teammates(player, minGames, limit);
+        return matchupsService.teammates(player, queue, minGames, limit);
     }
 
     /** Lane opponents: enemy champions faced in the tracked player's own position. */
     @GetMapping("/players/{gameName}/{tagLine}/lane-opponents")
     public List<LaneOpponentSummaryDto> laneOpponents(@PathVariable String gameName,
                                                       @PathVariable String tagLine,
+                                                      @RequestParam(required = false) Integer queue,
                                                       @RequestParam(defaultValue = "200") int limit) {
         Player player = playerService.getOrRegister(gameName, tagLine);
-        return matchupsService.laneOpponents(player, limit);
+        return matchupsService.laneOpponents(player, queue, limit);
     }
 
     /** Per-role (lane/position) performance this season. */
@@ -231,9 +235,10 @@ public class PlayerController {
     @GetMapping("/players/{gameName}/{tagLine}/champion-matchups")
     public List<ChampionMatchupSummaryDto> championMatchups(@PathVariable String gameName,
                                                             @PathVariable String tagLine,
+                                                            @RequestParam(required = false) Integer queue,
                                                             @RequestParam(defaultValue = "300") int limit) {
         Player player = playerService.getOrRegister(gameName, tagLine);
-        return matchupsService.championMatchups(player, limit);
+        return matchupsService.championMatchups(player, queue, limit);
     }
 
     @PostMapping("/players/{gameName}/{tagLine}/refresh")

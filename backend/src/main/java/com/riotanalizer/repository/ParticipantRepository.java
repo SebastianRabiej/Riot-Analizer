@@ -60,6 +60,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             select p from Participant p
             where p.puuid = :puuid
               and p.match.gameCreation >= :seasonStart
+              and (:queueId is null or p.match.queueId = :queueId)
               and p.match.matchId in (
                   select p2.match.matchId from Participant p2 where p2.puuid = :other
               )
@@ -67,7 +68,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             """)
     List<Participant> findSharedSeasonParticipations(@Param("puuid") String puuid,
                                                      @Param("other") String other,
-                                                     @Param("seasonStart") long seasonStart);
+                                                     @Param("seasonStart") long seasonStart,
+                                                     @Param("queueId") Integer queueId);
 
     /**
      * The tracked player's participation rows for current-season matches in which
@@ -110,18 +112,21 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
               and m.gameCreation >= :seasonStart
               and e.teamId <> me.teamId
               and e.puuid is not null
+              and (:queueId is null or m.queueId = :queueId)
             group by e.puuid
             having count(e) >= :minGames
             order by count(e) desc
             """)
     List<OpponentAggRow> aggregateOpponents(@Param("puuid") String puuid,
                                             @Param("seasonStart") long seasonStart,
-                                            @Param("minGames") long minGames);
+                                            @Param("minGames") long minGames,
+                                            @Param("queueId") Integer queueId);
 
     /**
      * "Vs champion" dashboard aggregation: every enemy champion the tracked player
      * has faced this season, grouped by champion, with games faced, the player's
-     * wins, and the player's K/D/A totals in those games. Most-faced first.
+     * wins, and the player's K/D/A totals in those games. Optional queue filter.
+     * Most-faced first.
      */
     @Query("""
             select new com.riotanalizer.dto.ChampionAggRow(
@@ -140,11 +145,13 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
               and m.gameCreation >= :seasonStart
               and e.teamId <> me.teamId
               and e.championName is not null
+              and (:queueId is null or m.queueId = :queueId)
             group by e.championId, e.championName
             order by count(distinct m.matchId) desc
             """)
     List<ChampionAggRow> aggregateChampionMatchups(@Param("puuid") String puuid,
-                                                   @Param("seasonStart") long seasonStart);
+                                                   @Param("seasonStart") long seasonStart,
+                                                   @Param("queueId") Integer queueId);
     /**
      * "With player" (duo) aggregation: every teammate the tracked player has
      * played alongside on the SAME team this season, grouped by teammate puuid,
@@ -167,19 +174,22 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
               and t.teamId = me.teamId
               and t.puuid <> me.puuid
               and t.puuid is not null
+              and (:queueId is null or m.queueId = :queueId)
             group by t.puuid
             having count(t) >= :minGames
             order by count(t) desc
             """)
     List<TeammateAggRow> aggregateTeammates(@Param("puuid") String puuid,
                                             @Param("seasonStart") long seasonStart,
-                                            @Param("minGames") long minGames);
+                                            @Param("minGames") long minGames,
+                                            @Param("queueId") Integer queueId);
 
     /**
      * "Lane opponents" aggregation: every enemy champion the tracked player has
      * faced in the SAME position (their actual lane opponent) this season,
      * grouped by champion, with games, wins, and the player's K/D/A totals.
-     * Games without a stored position for the player are excluded. Most-faced first.
+     * Games without a stored position for the player are excluded. Optional queue
+     * filter. Most-faced first.
      */
     @Query("""
             select new com.riotanalizer.dto.LaneOpponentAggRow(
@@ -201,11 +211,13 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
               and me.teamPosition is not null
               and me.teamPosition <> ''
               and e.championName is not null
+              and (:queueId is null or m.queueId = :queueId)
             group by e.championId, e.championName
             order by count(distinct m.matchId) desc
             """)
     List<LaneOpponentAggRow> aggregateLaneOpponents(@Param("puuid") String puuid,
-                                                    @Param("seasonStart") long seasonStart);
+                                                    @Param("seasonStart") long seasonStart,
+                                                    @Param("queueId") Integer queueId);
 
     /**
      * Carry Index aggregation: one row per current-season game of the tracked

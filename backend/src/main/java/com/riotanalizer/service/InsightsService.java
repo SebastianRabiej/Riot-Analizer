@@ -95,7 +95,7 @@ public class InsightsService {
     }
 
     private void nemesisAndVictim(Player player, List<InsightDto> out) {
-        List<OpponentSummaryDto> opps = matchups.opponents(player, MIN_GAMES, 0);
+        List<OpponentSummaryDto> opps = matchups.opponents(player, null, MIN_GAMES, 0);
         if (opps.isEmpty()) {
             return;
         }
@@ -126,7 +126,7 @@ public class InsightsService {
     }
 
     private void duoInsights(Player player, List<InsightDto> out) {
-        List<TeammateSummaryDto> mates = matchups.teammates(player, MIN_GAMES, 0);
+        List<TeammateSummaryDto> mates = matchups.teammates(player, null, MIN_GAMES, 0);
         if (mates.isEmpty()) {
             return;
         }
@@ -158,7 +158,7 @@ public class InsightsService {
     }
 
     private void championInsights(Player player, List<InsightDto> out) {
-        List<ChampionMatchupSummaryDto> champs = matchups.championMatchups(player, 0);
+        List<ChampionMatchupSummaryDto> champs = matchups.championMatchups(player, null, 0);
         List<ChampionMatchupSummaryDto> eligible = champs.stream()
                 .filter(c -> c.games() >= MIN_GAMES && c.championName() != null)
                 .toList();

@@ -31,8 +31,8 @@ export function Champions() {
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'games', dir: 'desc' });
 
   const played = useAsync(() => getStats(gameName, tagLine, queue), [gameName, tagLine, queue, refreshKey]);
-  const faced = useAsync(() => getChampionMatchups(gameName, tagLine), [gameName, tagLine, refreshKey]);
-  const lane = useAsync(() => getLaneOpponents(gameName, tagLine), [gameName, tagLine, refreshKey]);
+  const faced = useAsync(() => getChampionMatchups(gameName, tagLine, queue), [gameName, tagLine, queue, refreshKey]);
+  const lane = useAsync(() => getLaneOpponents(gameName, tagLine, queue), [gameName, tagLine, queue, refreshKey]);
 
   const active = mode === 'play' ? played : mode === 'face' ? faced : lane;
 

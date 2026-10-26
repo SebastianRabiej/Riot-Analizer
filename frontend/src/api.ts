@@ -173,9 +173,11 @@ export function getHeadToHead(
   tagLine: string,
   oppGameName: string,
   oppTagLine: string,
+  queue?: number,
 ): Promise<HeadToHeadDto> {
+  const q = queue != null ? `?queue=${queue}` : '';
   return request<HeadToHeadDto>(
-    `${playerPath(gameName, tagLine)}/vs/${enc(oppGameName)}/${enc(oppTagLine)}`,
+    `${playerPath(gameName, tagLine)}/vs/${enc(oppGameName)}/${enc(oppTagLine)}${q}`,
   );
 }
 
@@ -194,11 +196,13 @@ export function getOpponents(
   tagLine: string,
   minGames = 2,
   limit = 200,
+  queue?: number,
 ): Promise<OpponentSummaryDto[]> {
   const params = new URLSearchParams({
     minGames: String(minGames),
     limit: String(limit),
   });
+  if (queue != null) params.set('queue', String(queue));
   return request<OpponentSummaryDto[]>(
     `${playerPath(gameName, tagLine)}/opponents?${params.toString()}`,
   );
@@ -207,9 +211,11 @@ export function getOpponents(
 export function getChampionMatchups(
   gameName: string,
   tagLine: string,
+  queue?: number,
   limit = 300,
 ): Promise<ChampionMatchupSummaryDto[]> {
   const params = new URLSearchParams({ limit: String(limit) });
+  if (queue != null) params.set('queue', String(queue));
   return request<ChampionMatchupSummaryDto[]>(
     `${playerPath(gameName, tagLine)}/champion-matchups?${params.toString()}`,
   );
@@ -220,11 +226,13 @@ export function getTeammates(
   tagLine: string,
   minGames = 2,
   limit = 200,
+  queue?: number,
 ): Promise<TeammateSummaryDto[]> {
   const params = new URLSearchParams({
     minGames: String(minGames),
     limit: String(limit),
   });
+  if (queue != null) params.set('queue', String(queue));
   return request<TeammateSummaryDto[]>(
     `${playerPath(gameName, tagLine)}/teammates?${params.toString()}`,
   );
@@ -233,9 +241,11 @@ export function getTeammates(
 export function getLaneOpponents(
   gameName: string,
   tagLine: string,
+  queue?: number,
   limit = 200,
 ): Promise<LaneOpponentSummaryDto[]> {
   const params = new URLSearchParams({ limit: String(limit) });
+  if (queue != null) params.set('queue', String(queue));
   return request<LaneOpponentSummaryDto[]>(
     `${playerPath(gameName, tagLine)}/lane-opponents?${params.toString()}`,
   );

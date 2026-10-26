@@ -15,7 +15,7 @@ export function ChampionDetail() {
 
   const stats = useAsync(() => getStats(gameName, tagLine, queue), [gameName, tagLine, queue, refreshKey]);
   const vs = useAsync(() => getVsChampion(gameName, tagLine, championName), [gameName, tagLine, championName, refreshKey]);
-  const lane = useAsync(() => getLaneOpponents(gameName, tagLine), [gameName, tagLine, refreshKey]);
+  const lane = useAsync(() => getLaneOpponents(gameName, tagLine, queue), [gameName, tagLine, queue, refreshKey]);
 
   const played = stats.data?.championStats.find(
     (c) => c.championName.toLowerCase() === championName.toLowerCase(),

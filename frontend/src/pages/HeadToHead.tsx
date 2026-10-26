@@ -8,7 +8,7 @@ import { ChampionIcon } from '../components/icons';
 import { dateShort, formatKda, round } from '../util';
 
 export function HeadToHead() {
-  const { gameName, tagLine, refreshKey } = usePlayerCtx();
+  const { gameName, tagLine, queue, refreshKey } = usePlayerCtx();
   const params = useParams();
   const navigate = useNavigate();
   const oppGameName = params.oppGameName ?? '';
@@ -16,8 +16,8 @@ export function HeadToHead() {
   const base = `/player/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 
   const { data, loading, error } = useAsync(
-    () => getHeadToHead(gameName, tagLine, oppGameName, oppTagLine),
-    [gameName, tagLine, oppGameName, oppTagLine, refreshKey],
+    () => getHeadToHead(gameName, tagLine, oppGameName, oppTagLine, queue),
+    [gameName, tagLine, oppGameName, oppTagLine, queue, refreshKey],
   );
 
   const derived = useMemo(() => {

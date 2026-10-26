@@ -34,11 +34,11 @@ public class MatchupsService {
     }
 
     @Transactional(readOnly = true)
-    public List<OpponentSummaryDto> opponents(Player player, int minGames, int limit) {
+    public List<OpponentSummaryDto> opponents(Player player, Integer queueId, int minGames, int limit) {
         long seasonStart = props.getCurrentSeasonStartEpochMs();
         long mg = Math.max(1, minGames);
         List<OpponentAggRow> rows =
-                participants.aggregateOpponents(player.getPuuid(), seasonStart, mg);
+                participants.aggregateOpponents(player.getPuuid(), seasonStart, mg, queueId);
         return rows.stream()
                 .limit(limit <= 0 ? Long.MAX_VALUE : limit)
                 .map(r -> {
@@ -53,10 +53,10 @@ public class MatchupsService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChampionMatchupSummaryDto> championMatchups(Player player, int limit) {
+    public List<ChampionMatchupSummaryDto> championMatchups(Player player, Integer queueId, int limit) {
         long seasonStart = props.getCurrentSeasonStartEpochMs();
         List<ChampionAggRow> rows =
-                participants.aggregateChampionMatchups(player.getPuuid(), seasonStart);
+                participants.aggregateChampionMatchups(player.getPuuid(), seasonStart, queueId);
         return rows.stream()
                 .limit(limit <= 0 ? Long.MAX_VALUE : limit)
                 .map(r -> {
@@ -75,11 +75,11 @@ public class MatchupsService {
                 .toList();
     }
     @Transactional(readOnly = true)
-    public List<TeammateSummaryDto> teammates(Player player, int minGames, int limit) {
+    public List<TeammateSummaryDto> teammates(Player player, Integer queueId, int minGames, int limit) {
         long seasonStart = props.getCurrentSeasonStartEpochMs();
         long mg = Math.max(1, minGames);
         List<TeammateAggRow> rows =
-                participants.aggregateTeammates(player.getPuuid(), seasonStart, mg);
+                participants.aggregateTeammates(player.getPuuid(), seasonStart, mg, queueId);
         return rows.stream()
                 .limit(limit <= 0 ? Long.MAX_VALUE : limit)
                 .map(r -> {
@@ -94,10 +94,10 @@ public class MatchupsService {
     }
 
     @Transactional(readOnly = true)
-    public List<LaneOpponentSummaryDto> laneOpponents(Player player, int limit) {
+    public List<LaneOpponentSummaryDto> laneOpponents(Player player, Integer queueId, int limit) {
         long seasonStart = props.getCurrentSeasonStartEpochMs();
         List<LaneOpponentAggRow> rows =
-                participants.aggregateLaneOpponents(player.getPuuid(), seasonStart);
+                participants.aggregateLaneOpponents(player.getPuuid(), seasonStart, queueId);
         return rows.stream()
                 .limit(limit <= 0 ? Long.MAX_VALUE : limit)
                 .map(r -> {
