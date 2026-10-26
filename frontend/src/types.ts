@@ -43,6 +43,12 @@ export interface DiscoveredPageDto {
 }
 
 /** One player in the background scheduler's queue (GET /api/fetch-queue). */
+/**
+ * HEAD_CHECK = 1-call "anything new?"; BACKFILL = still walking the season;
+ * PROFILE_ONLY = discovered player with match history off (profile + rank only).
+ */
+export type CheckType = 'HEAD_CHECK' | 'BACKFILL' | 'PROFILE_ONLY';
+
 export interface FetchQueueEntry {
   /** 1-based place in the "up next" order; null for players not due yet. */
   position: number | null;
@@ -58,8 +64,7 @@ export interface FetchQueueEntry {
   /** Earliest time an early (spare-budget) check may happen; null = any time. */
   earlyCheckAt: string | null;
   newestMatchAt: string | null;
-  /** HEAD_CHECK = 1-call "anything new?"; BACKFILL = still walking the season. */
-  checkType: 'HEAD_CHECK' | 'BACKFILL';
+  checkType: CheckType;
   steps: string[];
   minCalls: number;
   maxCalls: number;
@@ -78,7 +83,7 @@ export interface FetchQueueDto {
     tagLine: string | null;
     trackingLevel: TrackingLevel;
     startedAt: string;
-    checkType: 'HEAD_CHECK' | 'BACKFILL';
+    checkType: CheckType;
     early: boolean;
   } | null;
   dueTracked: number;

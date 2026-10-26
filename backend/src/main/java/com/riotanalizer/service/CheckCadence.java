@@ -104,6 +104,21 @@ public final class CheckCadence {
                 || (newMatches > 0 && age.compareTo(DISCOVERED_PROFILE_MIN_AGE) >= 0);
     }
 
+    /**
+     * Profile-only DISCOVERED players (match history off): when the next
+     * profile/rank refresh is due, counted from the last one (or now if never).
+     */
+    public static Instant nextProfileOnlyCheck(Instant lastProfileRefresh, Instant now) {
+        Instant next = (lastProfileRefresh == null ? now : lastProfileRefresh).plus(DISCOVERED_PROFILE_MAX_AGE);
+        return next.isAfter(now) ? next : now.plus(DISCOVERED_PROFILE_MAX_AGE);
+    }
+
+    /** Whether a profile-only DISCOVERED player needs the 2-call profile/rank refresh now. */
+    public static boolean profileOnlyNeedsRefresh(Instant lastProfileRefresh, Instant now) {
+        return lastProfileRefresh == null
+                || Duration.between(lastProfileRefresh, now).compareTo(DISCOVERED_PROFILE_MAX_AGE) >= 0;
+    }
+
     public static Duration errorBackoff(TrackingLevel level) {
         return level == TrackingLevel.TRACKED ? TRACKED_ERROR_BACKOFF : DISCOVERED_ERROR_BACKOFF;
     }

@@ -87,8 +87,7 @@ public class FetchQueueService {
                 fetcher.lastRunChecked(),
                 running.map(r -> new FetchQueueDto.Running(r.puuid(), r.gameName(), r.tagLine(), r.level().name(),
                         r.startedAt().toString(),
-                        (r.backfill() ? FetchQueuePlanner.CheckType.BACKFILL
-                                : FetchQueuePlanner.CheckType.HEAD_CHECK).name(), r.early()))
+                        runningCheckType(r).name(), r.early()))
                         .orElse(null),
                 Math.max(0, players.countDue(TrackingLevel.TRACKED, now) - runningDueTracked),
                 Math.max(0, players.countDue(TrackingLevel.DISCOVERED, now) - runningDueDiscovered),
@@ -108,6 +107,13 @@ public class FetchQueueService {
                 upcoming(TrackingLevel.TRACKED, n, now),
                 upcoming(TrackingLevel.DISCOVERED, n, now),
                 rateLimit());
+    }
+
+    private FetchQueuePlanner.CheckType runningCheckType(ScheduledFetcher.Running r) {
+        if (r.level() == TrackingLevel.DISCOVERED && !fetcher.discoveredFetchMatches()) {
+            return FetchQueuePlanner.CheckType.PROFILE_ONLY;
+        }
+        return r.backfill() ? FetchQueuePlanner.CheckType.BACKFILL : FetchQueuePlanner.CheckType.HEAD_CHECK;
     }
 
     private RateLimitDto rateLimit() {
@@ -157,7 +163,8 @@ public class FetchQueueService {
         Boolean inGame = p.isTracked() ? liveGames.cachedInGame(p.getPuuid()).orElse(null) : null;
         FetchQueuePlanner.Plan plan = FetchQueuePlanner.plan(new FetchQueuePlanner.State(
                 p.getTrackingLevel(), p.isBackfillComplete(), p.getBackfillOffset(), p.getNewestMatchAt(),
-                p.getLastFetched(), inGame, p.getNextCheckAt()), Math.max(1, props.getFetchBatchSize()), now);
+                p.getLastFetched(), inGame, p.getNextCheckAt()), Math.max(1, props.getFetchBatchSize()),
+                fetcher.discoveredFetchMatches(), now);
         return new FetchQueueEntryDto(
                 position,
                 early,

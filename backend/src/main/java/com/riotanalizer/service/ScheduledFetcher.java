@@ -10,6 +10,8 @@ import com.riotanalizer.ratelimit.RiotRateLimiter;
 import com.riotanalizer.repository.PlayerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -42,6 +44,12 @@ import java.util.Optional;
  * check; profile/rank only after new games or when old; live game for tracked
  * players only. Afterwards {@code next_check_at} is set from how recently the
  * player played, so idle players are rarely touched.
+ *
+ * <p>With {@code riot.discovery-fetch-matches=false} (the default while on a
+ * dev key) DISCOVERED players are <b>profile only</b>: no match-list or match
+ * calls, just summoner + rank (2 calls) about once a week, and no early
+ * checks for them. Their rank is still known for lobbies and match details;
+ * already stored matches are kept.
  */
 @Component
 public class ScheduledFetcher {
@@ -60,6 +68,7 @@ public class ScheduledFetcher {
     private final LiveGameService liveGameService;
     private final RiotRateLimiter rateLimiter;
     private final EarlyCheckPolicy earlyPolicy;
+    private final boolean discoveredFetchMatches;
 
     /** The player being checked right now (for the fetch-queue view); null when idle. */
     public record Running(String puuid, String gameName, String tagLine, TrackingLevel level,
@@ -74,9 +83,18 @@ public class ScheduledFetcher {
     private volatile Instant lastRunAt;
     private volatile int lastRunChecked;
 
+    ScheduledFetcher(PlayerRepository players, PlayerService playerService, FetchService fetchService,
+                     LiveGameService liveGameService, RiotRateLimiter rateLimiter,
+                     EarlyCheckPolicy earlyPolicy) {
+        this(players, playerService, fetchService, liveGameService, rateLimiter, earlyPolicy, true);
+    }
+
+    @Autowired
     public ScheduledFetcher(PlayerRepository players, PlayerService playerService, FetchService fetchService,
                             LiveGameService liveGameService, RiotRateLimiter rateLimiter,
-                            EarlyCheckPolicy earlyPolicy) {
+                            EarlyCheckPolicy earlyPolicy,
+                            @Value("${riot.discovery-fetch-matches:false}") boolean discoveredFetchMatches) {
+        this.discoveredFetchMatches = discoveredFetchMatches;
         this.players = players;
         this.playerService = playerService;
         this.fetchService = fetchService;
@@ -106,7 +124,8 @@ public class ScheduledFetcher {
                 early++;
             }
             running = new Running(player.getPuuid(), player.getGameName(), player.getTagLine(),
-                    player.getTrackingLevel(), !player.isBackfillComplete() || player.getNewestMatchAt() == null,
+                    player.getTrackingLevel(), fetchesMatches(player)
+                    && (!player.isBackfillComplete() || player.getNewestMatchAt() == null),
                     isEarly, Instant.now());
             try {
                 process(player, isEarly);
@@ -155,10 +174,22 @@ public class ScheduledFetcher {
         return Optional.empty();
     }
 
+    /** Whether DISCOVERED players get match history, or only profile + rank. */
+    public boolean discoveredFetchMatches() {
+        return discoveredFetchMatches;
+    }
+
+    private boolean fetchesMatches(Player player) {
+        return player.isTracked() || discoveredFetchMatches;
+    }
+
     /** Whether the Riot budget has enough headroom for an early check at {@code level} right now. */
     public boolean earlyAllowed(TrackingLevel level) {
         if (!earlyPolicy.enabled()) {
             return false;
+        }
+        if (level == TrackingLevel.DISCOVERED && !discoveredFetchMatches) {
+            return false; // profile-only: checking early would just re-read an unchanged rank
         }
         RiotRateLimiter.WindowStatus w = rateLimiter.status().longWindow();
         return earlyPolicy.budgetAllows(level, w.used(), w.limit());
@@ -170,7 +201,11 @@ public class ScheduledFetcher {
                 ? FetchPriority.TRACKED_HISTORY
                 : FetchPriority.DISCOVERED_HISTORY;
         try {
-            FetchContext.run(priority, () -> check(player, early));
+            if (fetchesMatches(player)) {
+                FetchContext.run(priority, () -> check(player, early));
+            } else {
+                FetchContext.run(priority, () -> profileOnlyCheck(player));
+            }
         } catch (NotFoundException e) {
             log.warn("[{}] not found at Riot; next try in {}", tag(player), CheckCadence.NOT_FOUND_BACKOFF);
             backOff(player, CheckCadence.NOT_FOUND_BACKOFF);
@@ -221,6 +256,24 @@ public class ScheduledFetcher {
         } else {
             log.info("[{}] {} up to date; next check in {}", tag(player), kind, delay);
         }
+    }
+
+    /** DISCOVERED player with match history off: profile + rank only, about once a week. */
+    private void profileOnlyCheck(Player original) {
+        Player player = original;
+        Instant now = Instant.now();
+        boolean refreshed = false;
+        if (CheckCadence.profileOnlyNeedsRefresh(player.getLastFetched(), now)) {
+            player = playerService.refreshProfile(player); // re-keys a stale PUUID itself
+            refreshed = true;
+        }
+        Instant next = CheckCadence.nextProfileOnlyCheck(player.getLastFetched(), now);
+        player.setNextCheckAt(next);
+        player.setEarlyCheckAt(next);
+        playerService.save(player);
+        log.info("[{}] DISCOVERED (profile only) — {}; next check in {}", tag(player),
+                refreshed ? "profile & rank refreshed" : "profile fresh",
+                FetchQueuePlanner.human(Duration.between(now, next)));
     }
 
     private void backOff(Player player, Duration delay) {

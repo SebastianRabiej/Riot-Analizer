@@ -68,4 +68,18 @@ class CheckCadenceTest {
         assertTrue(CheckCadence.needsProfileRefresh(DISCOVERED, NOW.minus(Duration.ofDays(2)), 3, NOW));
         assertTrue(CheckCadence.needsProfileRefresh(DISCOVERED, NOW.minus(Duration.ofDays(8)), 0, NOW));
     }
+
+    @Test
+    void profileOnlyRefreshesWeekly() {
+        java.time.Instant now = java.time.Instant.parse("2026-10-25T12:00:00Z");
+        org.junit.jupiter.api.Assertions.assertTrue(CheckCadence.profileOnlyNeedsRefresh(null, now));
+        org.junit.jupiter.api.Assertions.assertFalse(
+                CheckCadence.profileOnlyNeedsRefresh(now.minus(java.time.Duration.ofDays(2)), now));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                CheckCadence.profileOnlyNeedsRefresh(now.minus(java.time.Duration.ofDays(7)), now));
+        org.junit.jupiter.api.Assertions.assertEquals(now.plus(java.time.Duration.ofDays(5)),
+                CheckCadence.nextProfileOnlyCheck(now.minus(java.time.Duration.ofDays(2)), now));
+        org.junit.jupiter.api.Assertions.assertEquals(now.plus(java.time.Duration.ofDays(7)),
+                CheckCadence.nextProfileOnlyCheck(null, now));
+    }
 }

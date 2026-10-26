@@ -19,7 +19,7 @@ import java.util.List;
  */
 public final class FetchQueuePlanner {
 
-    public enum CheckType { HEAD_CHECK, BACKFILL }
+    public enum CheckType { HEAD_CHECK, BACKFILL, PROFILE_ONLY }
 
     /**
      * @param checkType what {@link FetchService#sync} will do
@@ -41,6 +41,17 @@ public final class FetchQueuePlanner {
     }
 
     public static Plan plan(State s, int batchSize, Instant now) {
+        return plan(s, batchSize, true, now);
+    }
+
+    /**
+     * @param discoveredFetchMatches {@code riot.discovery-fetch-matches}; when false,
+     *                               DISCOVERED players get a profile-only plan
+     */
+    public static Plan plan(State s, int batchSize, boolean discoveredFetchMatches, Instant now) {
+        if (s.level() != TrackingLevel.TRACKED && !discoveredFetchMatches) {
+            return profileOnly(s, now);
+        }
         boolean tracked = s.level() == TrackingLevel.TRACKED;
         boolean headCheck = s.backfillComplete() && s.newestMatchAt() != null;
         List<String> steps = new ArrayList<>();
@@ -84,6 +95,24 @@ public final class FetchQueuePlanner {
         }
 
         return new Plan(headCheck ? CheckType.HEAD_CHECK : CheckType.BACKFILL, steps, min, max, reason(s, now));
+    }
+
+    private static Plan profileOnly(State s, Instant now) {
+        List<String> steps = new ArrayList<>();
+        int calls = 0;
+        if (CheckCadence.profileOnlyNeedsRefresh(s.lastProfileRefresh(), now)) {
+            steps.add(s.lastProfileRefresh() == null
+                    ? "Fetch profile & rank (never fetched)"
+                    : "Refresh profile & rank (last " + ago(s.lastProfileRefresh(), now) + ")");
+            calls = 2;
+        } else {
+            steps.add("Profile & rank still fresh — nothing to fetch");
+        }
+        steps.add("Match history skipped (discovered players are profile only)");
+        String reason = s.lastProfileRefresh() == null
+                ? "Just discovered — profile only"
+                : "Profile only — refreshed every " + human(CheckCadence.DISCOVERED_PROFILE_MAX_AGE);
+        return new Plan(CheckType.PROFILE_ONLY, steps, calls, calls, reason);
     }
 
     /** Why the player is checked when it is — the rule {@link CheckCadence#nextDelay} applies. */

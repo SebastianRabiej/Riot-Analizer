@@ -101,4 +101,15 @@ class ScheduledFetcherPickTest {
         assertEquals("d-early", pick.player().getPuuid());
         assertTrue(pick.early());
     }
+
+    @Test
+    void profileOnlyModeNeverChecksDiscoveredEarly() {
+        EarlyCheckPolicy policy = new EarlyCheckPolicy(true, Duration.ofMinutes(2), Duration.ofMinutes(30), 0.4, 0.6);
+        ScheduledFetcher profileOnly = new ScheduledFetcher(players, null, null, null, limiter, policy, false);
+        when(players.findEarlyEligible(eq(DISCOVERED), any(), any()))
+                .thenReturn(List.of(player("d-early", DISCOVERED)));
+        assertTrue(profileOnly.nextPick(NOW).isEmpty());
+        assertTrue(profileOnly.earlyAllowed(TRACKED));
+        assertFalse(profileOnly.earlyAllowed(DISCOVERED));
+    }
 }

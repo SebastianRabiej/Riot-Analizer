@@ -42,7 +42,7 @@ Then set at minimum `RIOT_API_KEY` (required — nothing works without it). The 
 - `RIOT_INITIAL_PLAYER` — optionally a `gameName#tagLine` to auto-track on startup. Leave it blank to add players through the UI instead.
 - `RIOT_SCHEDULER_TICK_MS` — how often the scheduler wakes up to look for players that are due (default `15000`). Each player is fetched when its own `next_check_at` is due, or earlier while the API budget has spare room (see below).
 - `RIOT_EARLY_CHECK_*` — early checks with spare budget (see "Early checks" below): `ENABLED` (default `true`), `TRACKED_MIN_GAP_MS` / `DISCOVERED_MIN_GAP_MS` (defaults `120000` / `1800000`), `TRACKED_MIN_FREE_RATIO` / `DISCOVERED_MIN_FREE_RATIO` (defaults `0.4` / `0.6`).
-- `RIOT_DISCOVERY_MAX_DEPTH` — how far discovery spreads from tracked players (default `1`; `-1` = unbounded, `0` = off). `RIOT_DISCOVERY_MAX_PLAYERS` caps the number of discovered players (default `0` = no cap).
+- `RIOT_DISCOVERY_MAX_DEPTH` — how far discovery spreads from tracked players (default `1`; `-1` = unbounded, `0` = off). `RIOT_DISCOVERY_MAX_PLAYERS` caps the number of discovered players (default `0` = no cap). `RIOT_DISCOVERY_FETCH_MATCHES` (default `false`) — when off, discovered players are profile only: summoner + rank refreshed about weekly, no match history fetched. Turn on once you have a production key.
 
 `.env` is git-ignored — keep your key out of version control.
 
@@ -125,7 +125,7 @@ Background priorities also leave part of the 2-minute window free (`RIOT_RATE_LI
 
 ### Tracking levels and discovery
 
-Every stored player has a `tracking_level`: `TRACKED` (chosen by a user), `DISCOVERED` (appeared in a stored match of a tracked player — or, with a higher `RIOT_DISCOVERY_MAX_DEPTH`, of another discovered player) or `NONE` (known but not fetched in the background). Discovered players get their current season backfilled too, but only after every tracked player is up to date, closest discovery depth first.
+Every stored player has a `tracking_level`: `TRACKED` (chosen by a user), `DISCOVERED` (appeared in a stored match of a tracked player — or, with a higher `RIOT_DISCOVERY_MAX_DEPTH`, of another discovered player) or `NONE` (known but not fetched in the background). Discovered players get their current season backfilled too (only with `RIOT_DISCOVERY_FETCH_MATCHES=true`; by default they are profile only), but only after every tracked player is up to date, closest discovery depth first.
 
 ### Staleness: when is a player fetched?
 

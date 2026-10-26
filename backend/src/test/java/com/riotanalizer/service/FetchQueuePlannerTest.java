@@ -74,4 +74,27 @@ class FetchQueuePlannerTest {
         assertEquals("Continue season backfill from match #300", plan.steps().get(0));
         assertEquals("Season not fully stored — re-queued right after each batch", plan.reason());
     }
+
+    @Test
+    void profileOnlyDiscoveredPlayerSkipsMatchHistory() {
+        FetchQueuePlanner.Plan plan = FetchQueuePlanner.plan(
+                synced(DISCOVERED, Duration.ofDays(3), Duration.ofDays(8), null), BATCH, false, NOW);
+        assertEquals(FetchQueuePlanner.CheckType.PROFILE_ONLY, plan.checkType());
+        assertEquals(2, plan.minCalls());
+        assertEquals(2, plan.maxCalls());
+    }
+
+    @Test
+    void profileOnlyWithFreshProfileCostsNothing() {
+        FetchQueuePlanner.Plan plan = FetchQueuePlanner.plan(
+                synced(DISCOVERED, Duration.ofDays(3), Duration.ofDays(2), null), BATCH, false, NOW);
+        assertEquals(0, plan.maxCalls());
+    }
+
+    @Test
+    void profileOnlyDoesNotAffectTrackedPlayers() {
+        FetchQueuePlanner.Plan plan = FetchQueuePlanner.plan(
+                synced(TRACKED, Duration.ofHours(3), Duration.ofHours(1), false), BATCH, false, NOW);
+        assertEquals(FetchQueuePlanner.CheckType.HEAD_CHECK, plan.checkType());
+    }
 }

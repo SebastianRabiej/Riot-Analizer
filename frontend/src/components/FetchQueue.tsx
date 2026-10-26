@@ -110,6 +110,9 @@ function LevelBadge({ e }: { e: Pick<FetchQueueEntry, 'trackingLevel' | 'discove
 }
 
 function CheckBadge({ type }: { type: FetchQueueEntry['checkType'] }) {
+  if (type === 'PROFILE_ONLY') {
+    return <span className="badge" title="Discovered player — only profile & rank are fetched, no match history">Profile only</span>;
+  }
   return type === 'HEAD_CHECK'
     ? <span className="badge teal" title="Season stored — one call asks Riot for games since the newest one we have">Head check</span>
     : <span className="badge violet" title="Season not fully stored — pulls the next batch of missing games">Backfill</span>;

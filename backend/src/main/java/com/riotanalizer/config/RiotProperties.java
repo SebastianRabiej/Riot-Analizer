@@ -38,6 +38,13 @@ public class RiotProperties {
     /** Hard cap on the number of DISCOVERED players; 0 = no cap. */
     private int discoveryMaxPlayers = 0;
 
+    /**
+     * Whether DISCOVERED players get their match history fetched. Off (the
+     * default, for a rate-limited dev key) = profile only: summoner + rank
+     * (2 calls) about once a week, no match-list or match calls at all.
+     */
+    private boolean discoveryFetchMatches = false;
+
     /** Riot rate limits (defaults = development / personal key). */
     private int rateLimitShortRequests = 20;
     private long rateLimitShortWindowMs = 1_000L;
@@ -131,6 +138,14 @@ public class RiotProperties {
 
     public void setDiscoveryMaxPlayers(int discoveryMaxPlayers) {
         this.discoveryMaxPlayers = discoveryMaxPlayers;
+    }
+
+    public boolean isDiscoveryFetchMatches() {
+        return discoveryFetchMatches;
+    }
+
+    public void setDiscoveryFetchMatches(boolean discoveryFetchMatches) {
+        this.discoveryFetchMatches = discoveryFetchMatches;
     }
 
     public int getRateLimitShortRequests() {

@@ -102,6 +102,9 @@ riot:
   # met in tracked players' games, N = N hops, -1 = unbounded, 0 = off.
   discovery-max-depth: ${RIOT_DISCOVERY_MAX_DEPTH:1}
   discovery-max-players: ${RIOT_DISCOVERY_MAX_PLAYERS:0}
+  # false = discovered players are profile only (summoner + rank ~weekly, no
+  # match history) to save a dev key's budget; true = backfill their season too.
+  discovery-fetch-matches: ${RIOT_DISCOVERY_FETCH_MATCHES:false}
   # Riot API limits (dev/personal key defaults) and the long-window permits
   # background work leaves free for user-facing requests.
   rate-limit-short-requests: ${RIOT_RATE_LIMIT_SHORT_REQUESTS:20}
