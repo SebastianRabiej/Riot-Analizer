@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Segmented } from '../components/ui';
+import { RolePicker } from '../components/decision/RolePicker';
+import { TravelMap } from '../components/decision/TravelMap';
 import { SituationPanel } from '../components/decision/SituationPanel';
 import { ActionValuePanel } from '../components/decision/ActionValuePanel';
 import { RoamScenarioPanel, VerdictPanel } from '../components/decision/RoamPanels';
@@ -56,20 +57,21 @@ export function DecisionLab() {
             Pick a role to see what kills, assists, waves and plates are worth for it, then weigh a roam against the farm you would leave behind.
           </p>
         </div>
-        <Segmented<Role> options={ROLE_KEYS.map((r) => ({ value: r, label: ROLES[r].name }))} value={role} onChange={pickRole} />
       </div>
+      <RolePicker value={role} onChange={pickRole} />
 
       <div className="dm-cols">
         <SituationPanel s={s} onChange={update} />
         <ActionValuePanel s={s} />
       </div>
 
-      <div className="section-title" style={{ marginBottom: 0 }}>Roam or farm your lane?</div>
+      <div id="dm-roam" className="section-title" style={{ marginBottom: 0 }}>Roam or farm your lane?</div>
       <div className="dm-cols">
         <RoamScenarioPanel s={s} o={o} onChange={(patch) => setRoam((cur) => ({ ...cur, ...patch }))} />
         <VerdictPanel s={s} o={o} />
       </div>
       <BreakEvenChart s={s} o={o} />
+      <TravelMap role={role} onUseSeconds={(sec) => { setRoam((cur) => ({ ...cur, duration: sec })); document.getElementById('dm-roam')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
       <RoleComparison t={s.t} role={role} xpValue={o.xpValue} mode={o.mode} onPick={pickRole} />
 
       <p className="note">
