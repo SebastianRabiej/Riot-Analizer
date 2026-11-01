@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Riot Analizer: League of Legends 2026 XP &amp; gold calculator for every role, roam-vs-farm decisions and a travel-time map.">
+  <title>XP, Gold & Roam Lab — Riot Analizer</title>
+  <style>
+    :root{--bg:#0b0d12;--panel:#141824;--panel2:#1a1f2e;--panel3:#141824;--edge:#323b50;--text:#e8ebf2;--muted:#aab2c5;--gold:#e9b64c;--teal:#33e0c0;--blue:#4b9bff;--red:#f0576b;--shadow:0 24px 80px rgba(0,0,0,.25)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(ellipse 45% 27% at 8% 0%,#262d3d 0%,transparent 92%),radial-gradient(ellipse 38% 32% at 100% 8%,#262d3d 0%,transparent 85%),var(--bg);font-variant-numeric:tabular-nums;line-height:1.45}button,input,select{font:inherit}button{cursor:pointer}a{color:var(--teal);text-underline-offset:3px}a:hover{color:#7ff0dc}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+    .wrap{max-width:1390px;margin:auto;padding:0 28px 64px}.topbar{height:76px;border-bottom:1px solid rgba(129,173,184,.14);display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--text);font-weight:800;letter-spacing:.14em;font-size:13px}.logo{width:32px;height:32px;border:1px solid #e9b64c;background:linear-gradient(140deg,#323b50,#1a1f2e);display:grid;place-items:center;color:var(--gold);transform:rotate(45deg);border-radius:6px;box-shadow:0 0 26px #e9b64c1c}.logo b{transform:rotate(-45deg);font-family:Georgia,serif;font-size:17px}.top-note{color:var(--muted);font-size:12px;letter-spacing:.09em;text-transform:uppercase}.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #3a787e;background:#295157;border-radius:999px;color:#7ff0dc;padding:7px 12px;font-size:11px;font-weight:700;letter-spacing:.08em}.pill:before{content:"";width:6px;height:6px;border-radius:50%;background:#33e0c0;box-shadow:0 0 8px #33e0c0}
+    .hero{padding:45px 0 32px;display:flex;justify-content:space-between;align-items:end;gap:30px}.eyebrow{font-size:11px;font-weight:850;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:12px}.hero h1{font-size:clamp(34px,4.2vw,59px);line-height:1.06;letter-spacing:-.057em;margin:0 0 15px;font-weight:780;max-width:770px}.hero h1 em{color:var(--teal);font-style:normal}.hero p{max-width:650px;color:var(--muted);font-size:15px;margin:0}.hero-tag{border-left:2px solid var(--gold);padding:9px 0 9px 18px;color:#aab2c5;font-size:12px;max-width:220px}
+    .workspace{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr);gap:17px;align-items:stretch}.panel{border:1px solid var(--edge);border-radius:15px;background:linear-gradient(150deg,#1a1f2ef8,#141824f8);box-shadow:var(--shadow);overflow:hidden}.panel-pad{padding:27px}.panel-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:760;letter-spacing:-.02em;margin:0}.numtag{width:25px;height:25px;display:inline-grid;place-items:center;color:var(--gold);border:1px solid #e9b64c;border-radius:5px;font-size:12px;font-weight:700}.help{margin:8px 0 0;color:var(--muted);font-size:12px}.controls{margin-top:23px;display:grid;gap:19px}.field{display:block;min-width:0}.field-label{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:8px;font-size:12px;font-weight:750;color:#aab2c5;letter-spacing:.01em}.field-label small{font-weight:500;color:#6f7a92;font-size:11px}.control{width:100%;height:48px;border:1px solid #3d475f;background:var(--panel3);color:var(--text);border-radius:8px;padding:0 14px;outline:0}.control:focus{border-color:var(--teal)}.control option{background:var(--panel2)}.control:disabled{opacity:.8;cursor:default}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.timebox{display:flex;align-items:center;gap:10px}.timebox .control{max-width:160px;font-weight:700;letter-spacing:.05em}.presets{display:flex;flex-wrap:wrap;gap:6px}.presets button{border:1px solid var(--edge);background:#202636;color:#aab2c5;padding:9px 10px;border-radius:7px;font-size:11px}.presets button:hover,.presets button.active{border-color:#6f7a92;color:var(--teal);background:#295157}.hint{color:var(--muted);font-size:11px;margin:7px 0 0}.sectline{margin:1px 0;border:0;border-top:1px solid var(--edge)}.action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.act{cursor:pointer;display:flex;align-items:center;gap:12px;background:#141824;border:1px solid #3d475f;padding:16px 13px;border-radius:10px;min-height:80px;transition:background .12s,border-color .12s,transform .12s}.act:hover{border-color:#6f7a92;transform:translateY(-1px)}.act:has(input:checked){background:#295157;border-color:var(--teal);box-shadow:inset 0 0 0 1px #33e0c038}.act:has(input:focus-visible){outline:2px solid var(--teal);outline-offset:3px}.act input{position:absolute;opacity:0;width:1px;height:1px}.act-ico{width:38px;min-width:38px;height:38px;display:grid;place-items:center;border-radius:9px;background:#262d3d;border:1px solid #3d475f;color:var(--gold);font-size:19px;font-weight:700;font-family:Georgia,serif}.act:has(input:checked) .act-ico{border-color:#3a787e;color:var(--teal);background:#325c66}.act strong{font-size:13px;display:block}.act span.subtitle{font-size:10px;color:var(--muted);display:block;margin-top:3px;line-height:1.3}.assist-config{margin-top:13px;padding:14px 15px 13px;border:1px solid #3a787e;background:linear-gradient(130deg,#295157,#202636);border-radius:10px}.assist-config[hidden]{display:none!important}.assist-config .control{height:45px;max-width:100%}.assist-config .field-label{margin-bottom:9px}.assist-config .hint{margin:11px 0 0;line-height:1.5}.assist-eyebrow{color:#7ff0dc;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin:0 0 7px}.share-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.share-option{position:relative;cursor:pointer;text-align:center;border:1px solid #3a787e;border-radius:8px;background:#1a1f2e;padding:10px 3px;min-width:0}.share-option input{position:absolute;width:1px;height:1px;opacity:0}.share-option:has(input:checked){border-color:#33e0c0;background:#325c66;box-shadow:inset 0 0 0 1px #33e0c066}.share-option:has(input:focus-visible){outline:2px solid #33e0c0;outline-offset:3px}.share-option strong{display:block;font-size:21px;font-weight:800;color:#7ff0dc;line-height:1.15}.share-option span{display:block;font-size:10px;color:#aab2c5;margin-top:3px}.share-divider{height:1px;background:#3a787e;margin:14px 0 12px}.share-party{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.share-person{border:1px solid #3d475f;border-radius:8px;background:#1a1f2e;padding:9px 11px;font-size:11px;font-weight:750;line-height:1.3;color:#e8ebf2;min-width:72px;text-align:center}.share-person small{display:block;font-size:9px;font-weight:500;color:#aab2c5;margin-top:4px}.share-person.is-you{background:#325c66;border-color:#33e0c0;color:#7ff0dc}.share-person.is-you small{color:#7ff0dc}.share-total{font-size:12px;color:#7ff0dc;font-weight:720;margin:0}.share-math{margin:12px 0 0;color:#aab2c5;font-size:11px}.share-result{border:1px solid #3a787e;background:#295157;padding:10px 12px;border-radius:8px;margin:13px 0 0;font-size:12px;line-height:1.5;color:#7ff0dc}.share-result[hidden]{display:none}.share-result strong{color:#7ff0dc}.bottom-small{margin-top:15px;display:flex;justify-content:space-between;align-items:center;gap:12px}.reset{border:0;background:none;color:#aab2c5;font-size:12px;text-decoration:underline;text-underline-offset:3px;padding:6px}.reset:hover{color:white}
+    .output{background:radial-gradient(ellipse 100% 50% at 100% 0%,#325c6650,transparent),linear-gradient(150deg,#1a1f2e,#0f121a);display:flex;flex-direction:column}.output-head{border-bottom:1px solid #323b50;padding:27px 27px 19px}.output-head .panel-title{color:#7ff0dc}.big-number{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:16px 0 0}.big-number strong{font-size:clamp(50px,5.5vw,79px);line-height:1;letter-spacing:-.07em;color:var(--teal)}.big-number span{font-size:18px;font-weight:750;color:#33e0c0}.result-summary{font-size:12px;color:#aab2c5;margin:11px 0 0;min-height:35px}.progress-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:#aab2c5;margin-top:15px}.progress-title strong{color:var(--gold);font-size:13px}.progress-track{margin-top:7px;height:9px;overflow:hidden;background:#262d3d;border-radius:999px}.progress-fill{height:100%;background:linear-gradient(90deg,#33e0c0,var(--teal));border-radius:inherit;width:0;transition:width .2s}.more-note{font-size:11px;color:#aab2c5;margin:9px 0 0}.equiv{padding:21px 27px 25px;flex:1}.equiv-heading{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.equiv-heading h3{font-size:14px;margin:0;color:var(--text)}.equiv-heading span{font-size:11px;color:#aab2c5}.camp-list{display:grid;gap:9px;margin-top:13px}.camp{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid #323b50;background:#141824;border-radius:9px}.camp .avatar{width:37px;height:37px;border:1px solid #3d475f;background:#262d3d;border-radius:9px;display:grid;place-items:center;color:var(--gold);font-weight:700;font-size:13px}.camp-name{font-weight:700;font-size:12px}.camp-note{color:var(--muted);font-size:10px;margin-top:2px}.camp-right{text-align:right}.camp-ratio{color:var(--teal);font-size:18px;font-weight:800;letter-spacing:-.035em;line-height:1.1}.camp-right small{display:block;color:#aab2c5;font-size:10px;margin-top:4px}.output-foot{padding:0 27px 25px;color:var(--muted);font-size:11px;line-height:1.5}
+    .table-section{margin-top:35px}.table-header{display:flex;gap:15px;justify-content:space-between;align-items:end;margin-bottom:17px}.section-kicker{color:var(--gold);text-transform:uppercase;font-size:10px;font-weight:850;letter-spacing:.23em}.table-header h2{font-size:27px;letter-spacing:-.045em;margin:5px 0 0}.table-header p{color:var(--muted);font-size:12px;margin:6px 0 0}.view-switch{border:1px solid #323b50;background:#1a1f2e;display:flex;border-radius:8px;padding:4px;gap:3px;align-self:end}.view-switch button{padding:9px 11px;background:transparent;color:#aab2c5;border:0;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap}.view-switch button.active{background:#3a787e;color:#7ff0dc}.table-container{max-width:100%;overflow:auto;border:1px solid #323b50;border-radius:12px;background:#141824;box-shadow:var(--shadow);max-height:680px}.xp-table{border-spacing:0;border-collapse:separate;width:100%;min-width:1550px;font-size:11px;white-space:nowrap}.xp-table th,.xp-table td{padding:12px 13px;text-align:right;border-bottom:1px solid #262d3d;border-right:1px solid #262d3d}.xp-table th{background:#262d3d;color:#aab2c5;position:sticky;top:0;z-index:3;font-weight:750;letter-spacing:.02em}.xp-table tbody tr:nth-child(even){background:#1a1f2e}.xp-table tbody tr:hover{background:#323b50;cursor:pointer}.xp-table tbody tr.selected,.xp-table tbody tr.selected:hover{background:#325c66}.xp-table tbody tr.selected td:first-child{color:#33e0c0}.xp-table th:first-child,.xp-table td:first-child{position:sticky;left:0;text-align:center;z-index:2;min-width:60px;background:#1a1f2e;font-weight:750}.xp-table th:nth-child(2),.xp-table td:nth-child(2){position:sticky;left:60px;min-width:95px;background:#1a1f2e;z-index:2}.xp-table th:first-child,.xp-table th:nth-child(2){z-index:5;background:#262d3d}.xp-table tbody tr:nth-child(even) td:nth-child(-n+2){background:#202636}.xp-table tbody tr.selected td:nth-child(-n+2){background:#3a787e}.xp-table td.cannon{color:#f6d585}.xp-table td.muted{color:#6f7a92}.xp-table td.gromp{color:#33e0c0}.xp-table th.sep,.xp-table td.sep{border-left:2px solid #3d475f}.table-tip{display:flex;gap:12px;align-items:start;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:13px;flex-wrap:wrap}.table-tip span{max-width:790px}.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.legend b{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);margin-right:5px}.footnotes{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:26px;padding-top:22px;border-top:1px solid var(--edge)}.footnotes h3{font-size:13px;margin:0 0 9px}.footnotes p{font-size:11px;color:var(--muted);line-height:1.6;margin:5px 0}.sources{display:flex;gap:8px;flex-wrap:wrap}.sources a{font-size:11px;border:1px solid #3d475f;padding:8px 10px;border-radius:7px;color:#33e0c0;text-decoration:none}.sources a:hover{border-color:#33e0c0}.footer{font-size:10px;color:#6f7a92;margin-top:38px;text-align:center}.mobile-scroll-msg{display:none}
+    .quest-toggle{display:flex;align-items:flex-start;gap:12px;background:#1a1f2e;border:1px solid #3d475f;padding:13px 14px;border-radius:9px;cursor:pointer}.quest-toggle input{accent-color:#e9b64c;margin-top:3px;width:17px;height:17px;flex:none}.quest-toggle strong{display:block;font-size:12px;color:#e8ebf2}.quest-toggle small{display:block;font-size:11px;color:var(--muted);line-height:1.5;margin-top:3px}
+    .reward-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.reward-tile{border:1px solid #3a787e;border-radius:10px;padding:13px 13px 15px;background:linear-gradient(145deg,#295157,#1a1f2e);min-width:0}.reward-tile.gold-tile{border-color:#746b59;background:linear-gradient(145deg,#4d4840,#202636)}.reward-label{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#aab2c5}.reward-tile.gold-tile .reward-label{color:#e9b64c}.reward-amount{display:flex;align-items:baseline;gap:7px;margin-top:6px;white-space:nowrap}.reward-amount strong{font-size:clamp(30px,3.2vw,51px);letter-spacing:-.06em;line-height:1.1}.xp-amount strong{color:var(--teal)}.gold-amount strong{color:var(--gold)}.reward-amount span{font-size:12px;font-weight:800;color:#aab2c5}.gold-amount span{color:#e9b64c}.gold-explanation{font-size:11px;color:#e9b64c;background:#4d484047;border-left:2px solid #e9b64c;padding:8px 10px;margin:16px 0 0;border-radius:0 6px 6px 0;line-height:1.5}.compare-key{display:flex;gap:7px;align-items:center;font-size:10px;color:#aab2c5;margin-top:10px;flex-wrap:wrap}.compare-key .legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:10px}.teal-dot{background:var(--teal)}.gold-dot{background:var(--gold)}.camp{grid-template-columns:40px minmax(0,1fr) auto}.camp-comparisons{display:flex;gap:13px;justify-content:end;align-items:center}.camp-comparisons>div{text-align:right;min-width:64px}.camp-comparisons small{font-size:9px;font-weight:700;letter-spacing:.05em;color:#aab2c5;display:block}.camp-comparisons strong{display:block;font-size:17px;font-weight:800;letter-spacing:-.03em}.ratio-xp{color:var(--teal)}.ratio-gold{color:var(--gold)}.gold-reference{margin-top:34px;padding:24px 26px 26px;border:1px solid #746b59;background:linear-gradient(140deg,#262d3d,#1a1f2e);border-radius:13px}.gold-reference h2{font-size:23px;letter-spacing:-.035em;margin:6px 0}.gold-reference p{font-size:12px;line-height:1.6;color:var(--muted);max-width:1000px;margin:8px 0 17px}.mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.mini-box{border:1px solid #746b59;background:#1a1f2e;border-radius:8px;padding:13px 14px}.mini-box strong{display:block;font-size:20px;color:var(--gold);letter-spacing:-.035em}.mini-box small{display:block;color:var(--muted);font-size:10px;line-height:1.5;margin-top:4px}
+    @media(max-width:1000px){.mini-grid{grid-template-columns:repeat(2,1fr)}.workspace{grid-template-columns:1fr}.hero{align-items:start}.hero-tag{display:none}.output{display:grid;grid-template-columns:1fr 1fr}.output-head{border-bottom:0;border-right:1px solid #323b50}.equiv{padding-bottom:12px}.output-foot{grid-column:1/-1;padding-top:12px}}
+    @media(max-width:660px){.mini-grid{grid-template-columns:repeat(2,1fr)}.reward-pair{gap:7px}.reward-tile{padding:11px 10px}.reward-amount strong{font-size:38px}.camp-comparisons{gap:9px}.camp-comparisons>div{min-width:48px}.camp-comparisons strong{font-size:15px}.camp{gap:7px;padding:10px 8px}.gold-reference{padding:18px}.wrap{padding:0 15px 40px}.topbar{height:63px}.top-note{display:none}.hero{padding:32px 0 24px}.hero h1{font-size:39px}.panel-pad,.output-head,.equiv{padding:19px}.two{gap:10px}.act{min-height:76px;padding:12px 9px;gap:9px}.act-ico{width:30px;min-width:30px;height:32px;font-size:16px}.act strong{font-size:12px}.act span.subtitle{font-size:9px}.timebox{flex-wrap:wrap}.timebox .control{max-width:100%}.presets button{padding:8px 10px}.output{display:block}.output-head{border-right:0;border-bottom:1px solid #323b50}.output-foot{padding:10px 19px 20px}.big-number strong{font-size:65px}.table-header{display:block}.view-switch{margin-top:14px;width:max-content}.xp-table th,.xp-table td{padding:10px}.footnotes{grid-template-columns:1fr}.mobile-scroll-msg{display:block;color:var(--muted);font-size:11px;margin-top:10px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.act,.progress-fill{transition:none}}
+      .role-bar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:0 0 17px}.role-btn{display:flex;align-items:center;gap:11px;border:1px solid var(--edge);background:linear-gradient(150deg,#1a1f2e,#141824);color:#aab2c5;border-radius:12px;padding:13px 14px;text-align:left;transition:border-color .12s,background .12s}.role-btn:hover{border-color:#6f7a92}.role-btn.active{border-color:var(--teal);background:linear-gradient(150deg,#325c66,#202636);color:#7ff0dc;box-shadow:inset 0 0 0 1px #33e0c040}.role-btn .r-ico{width:36px;min-width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:#262d3d;border:1px solid #3d475f;color:var(--gold);font-family:Georgia,serif;font-weight:700;font-size:17px}.role-btn.active .r-ico{background:#325c66;border-color:#3a787e;color:var(--teal)}.role-btn strong{display:block;font-size:13px}.role-btn small{display:block;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+    .role-strip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 17px}.role-chip{font-size:11px;border:1px solid #3d475f;background:#1a1f2e;color:#aab2c5;border-radius:999px;padding:6px 11px}.role-chip b{color:var(--teal);font-weight:800}
+    .partner-toggle[hidden]{display:none}
+    .roam{margin-top:35px}.roam-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:17px}.slider-field{display:block}.slider-field input[type=range]{width:100%;accent-color:var(--teal);margin:4px 0 0}.slider-field .field-label strong{color:var(--teal);font-size:13px}.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .verdict{border-radius:12px;padding:18px 18px 16px;border:1px solid #3a787e;background:linear-gradient(140deg,#295157,#1a1f2e)}.verdict.farm{border-color:#746b59;background:linear-gradient(140deg,#4d4840,#1a1f2e)}.verdict.flip{border-color:#3d475f;background:linear-gradient(140deg,#202636,#1a1f2e)}.verdict-label{font-size:10px;font-weight:850;letter-spacing:.2em;text-transform:uppercase;color:#aab2c5}.verdict-call{font-size:clamp(34px,4vw,52px);font-weight:820;letter-spacing:-.05em;line-height:1.05;margin-top:4px;color:var(--teal)}.verdict.farm .verdict-call{color:var(--gold)}.verdict.flip .verdict-call{color:var(--blue)}.verdict p{margin:8px 0 0;font-size:12px;color:#e8ebf2;line-height:1.5}
+    .ev-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}.ev{border:1px solid #323b50;background:#141824;border-radius:9px;padding:11px 12px;min-width:0}.ev small{display:block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#aab2c5}.ev .g{display:block;color:var(--gold);font-size:19px;font-weight:800;letter-spacing:-.03em;margin-top:4px}.ev .x{display:block;color:var(--teal);font-size:13px;font-weight:750;margin-top:1px}.ev em{display:block;font-style:normal;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.35}
+    .be{margin-top:14px}.be-track{position:relative;height:12px;border-radius:999px;background:#262d3d;overflow:visible;margin-top:7px}.be-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#33e0c0,var(--teal))}.be-mark{position:absolute;top:-5px;width:2px;height:22px;background:var(--gold);box-shadow:0 0 6px #e9b64c}.be-legend{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#aab2c5;flex-wrap:wrap}.be-legend b{color:var(--gold)}.be-legend i{font-style:normal;color:var(--teal);font-weight:800}
+    .why{margin:13px 0 0;padding:0;list-style:none;display:grid;gap:5px}.why li{font-size:11px;color:#aab2c5;line-height:1.45;padding-left:14px;position:relative}.why li:before{content:"›";position:absolute;left:0;color:var(--gold);font-weight:800}
+    .chart-panel{margin-top:17px}.chart-wrap{width:100%;overflow:hidden}.chart-wrap svg{display:block;width:100%;height:auto}.chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#aab2c5;margin-top:8px}.chart-legend span{display:inline-flex;align-items:center;gap:6px}.sw{display:inline-block;width:18px;height:3px;border-radius:2px}
+    .wave-clock{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.wv{border:1px solid #3d475f;background:#141824;border-radius:8px;padding:8px 10px;font-size:11px;color:#aab2c5;min-width:78px;text-align:center}.wv b{display:block;font-size:13px;color:var(--text)}.wv.cn{border-color:#e9b64c;background:#343438;color:#f6d585}.wv.cn b{color:var(--gold)}.wv.go{box-shadow:0 0 0 2px var(--teal)}
+    .role-table{border-spacing:0;border-collapse:separate;width:100%;min-width:1000px;font-size:12px}.role-table th,.role-table td{padding:12px 13px;text-align:right;border-bottom:1px solid #262d3d;white-space:nowrap}.role-table th{background:#262d3d;color:#aab2c5;font-weight:750;font-size:11px}.role-table td:first-child,.role-table th:first-child{text-align:left}.role-table tbody tr{cursor:pointer}.role-table tbody tr:hover{background:#323b50}.role-table tbody tr.selected{background:#325c66}.tag{display:inline-block;border-radius:999px;padding:4px 9px;font-size:10px;font-weight:800;letter-spacing:.05em}.tag.roam{background:#325c66;color:#7ff0dc;border:1px solid #33e0c0}.tag.sit{background:#262d3d;color:#aab2c5;border:1px solid #3d475f}.tag.farm{background:#4d4840;color:#f6d585;border:1px solid #746b59}
+    .playbooks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:17px}.pb{border:1px solid var(--edge);border-radius:12px;background:#141824;padding:15px 14px;min-width:0}.pb.active{border-color:var(--teal);box-shadow:inset 0 0 0 1px #33e0c038}.pb h3{margin:0;font-size:14px;display:flex;align-items:center;gap:8px}.pb h3 span{color:var(--gold);font-family:Georgia,serif}.pb .now{font-size:11px;color:#7ff0dc;margin:8px 0 0;line-height:1.45}.pb ul{margin:9px 0 0;padding-left:16px}.pb li{font-size:11px;color:#aab2c5;line-height:1.5;margin:3px 0}.pb li b{color:#e8ebf2}.pb .q{margin-top:9px;font-size:10px;color:#e9b64c;border-top:1px solid #323b50;padding-top:8px;line-height:1.45}
+    @media(max-width:1180px){.playbooks{grid-template-columns:repeat(2,minmax(0,1fr))}.role-bar{grid-template-columns:repeat(5,minmax(0,1fr))}.role-btn small{display:none}}
+    @media(max-width:1000px){.roam-grid{grid-template-columns:1fr}}
+    @media(max-width:660px){.role-bar{grid-template-columns:repeat(3,minmax(0,1fr))}.role-btn{padding:10px 9px;gap:8px}.role-btn .r-ico{width:28px;min-width:28px;height:28px;font-size:14px}.three{grid-template-columns:1fr}.ev-grid{grid-template-columns:1fr}.playbooks{grid-template-columns:1fr}}
+    .plate-choices{grid-template-columns:repeat(5,minmax(0,1fr))}.plate-table{margin-top:12px;border:1px solid #3a787e;border-radius:8px;overflow:hidden}.plate-table table{width:100%;border-collapse:collapse;font-size:11px}.plate-table th,.plate-table td{padding:7px 9px;text-align:right;border-bottom:1px solid #325c66}.plate-table th{background:#244b52;color:#33e0c0;font-weight:750}.plate-table td:first-child,.plate-table th:first-child{text-align:left}.plate-table tr.sel td{background:#325c66;color:#7ff0dc;font-weight:750}.plate-table tr:last-child td{border-bottom:0}.plate-table .eff{color:var(--gold)}
+    .equiv-group{font-size:10px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:#aab2c5;margin:8px 0 -2px;padding-left:2px}.equiv-group:first-child{margin-top:0}
+    .travel-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:17px}.map-wrap{width:100%;aspect-ratio:1/1;border:1px solid #323b50;border-radius:10px;overflow:hidden;background:#0f121a}.map-wrap canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:manipulation}
+    .ms-out{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;border:1px solid #3a787e;background:linear-gradient(140deg,#295157,#1a1f2e);border-radius:10px;padding:13px 14px}.ms-out strong{display:block;font-size:40px;line-height:1.05;letter-spacing:-.05em;color:var(--teal)}.ms-out small{display:block;font-size:10px;color:#aab2c5}.ms-per{display:flex;gap:6px;flex-wrap:wrap}.per{border:1px solid #3a787e;background:#1d323d;border-radius:8px;padding:6px 9px;text-align:center;min-width:62px}.per b{display:block;font-size:11px;color:#7ff0dc}.per span{display:block;font-size:15px;font-weight:800;color:var(--text)}.per small{font-size:9px}
+    #tr-mode{align-self:start;width:max-content}.tr-result{border:1px solid #323b50;background:#141824;border-radius:10px;padding:13px 14px}.tr-result p{margin:7px 0 0;font-size:12px;color:#aab2c5;line-height:1.5}.tr-result b{color:var(--gold)}.tr-big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.tr-big strong{font-size:34px;letter-spacing:-.05em;color:var(--gold);line-height:1}.tr-big span{font-size:12px;color:#e8ebf2;font-weight:700}
+    .tr-use{border:1px solid #6f7a92;background:#295157;color:var(--teal);border-radius:8px;padding:11px 12px;font-size:12px;font-weight:800}.tr-use:hover{background:#325c66}.tr-use:disabled{opacity:.5;cursor:default}.tr-within p{margin:4px 0;font-size:11px;color:#aab2c5;line-height:1.5}.tr-within b{color:#e8ebf2}
+    .tr-table{margin-top:12px;max-height:330px;overflow:auto;border:1px solid #323b50;border-radius:9px}.tr-table table{width:100%;border-collapse:collapse;font-size:11px}.tr-table th,.tr-table td{padding:7px 10px;text-align:right;border-bottom:1px solid #262d3d;white-space:nowrap}.tr-table th{position:sticky;top:0;background:#262d3d;color:#aab2c5}.tr-table td:first-child,.tr-table th:first-child{text-align:left}.tr-table tbody tr{cursor:pointer}.tr-table tbody tr:hover{background:#323b50}.tr-table tr.sel td{background:#4d4840;color:#f6d585}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:#aab2c5}.dot.b{background:#4b9bff}.dot.r{background:#f0576b}
+    @media(max-width:1000px){.travel-grid{grid-template-columns:1fr}}
+    .map-src{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px}@media(max-width:660px){.map-src{grid-template-columns:1fr}}
+    /* ===== Riot Analizer design system layer (tokens from frontend/src/styles.css) ===== */
+    :root{--bg:#0b0d12;--bg-2:#0f121a;--panel:#141824;--panel-2:#1a1f2e;--panel-3:#202636;--panel2:#1a1f2e;--panel3:#1a1f2e;--edge:#262d3d;--border:#262d3d;--border-2:#323b50;--text:#e8ebf2;--text-2:#aab2c5;--text-3:#6f7a92;--muted:#7d88a1;--teal:#33e0c0;--teal-dim:#1c8f7c;--gold:#e9b64c;--gold-dim:#a67d28;--blue:#4b9bff;--purple:#a072ff;--red:#f0576b;--win:#46d17f;--loss:#f0576b;--radius:14px;--radius-sm:9px;--shadow:none;--font:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;color-scheme:dark}
+    body{font-family:var(--font);font-size:14px;line-height:1.45;color:var(--text);-webkit-font-smoothing:antialiased;background:radial-gradient(1100px 600px at 80% -10%,rgba(51,224,192,.06),transparent 60%),radial-gradient(900px 500px at 0% 0%,rgba(74,155,255,.05),transparent 55%),var(--bg);background-attachment:fixed}
+    ::selection{background:rgba(51,224,192,.3)}*{scrollbar-width:thin;scrollbar-color:var(--border-2) transparent}
+    a{color:var(--teal)}a:hover{color:#7ff0dc}
+    button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--teal-dim);outline-offset:2px}
+    .wrap{max-width:1200px;padding:0 20px 60px}
+    /* top bar */
+    .topbar{position:sticky;top:0;z-index:50;height:auto;background:rgba(11,13,18,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:block}
+    .topbar-inner{display:flex;align-items:center;gap:14px;height:62px;padding-bottom:0}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;letter-spacing:-.02em;color:var(--text);text-decoration:none}
+    .brand:hover{color:var(--text)}
+    .brand-mark{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:900;color:#061410;background:linear-gradient(135deg,var(--teal),#7ff0dc);box-shadow:0 4px 14px rgba(51,224,192,.3)}
+    .topbar-spacer{flex:1}.tracked-chips{display:flex;gap:7px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--border);color:var(--text-2);border-radius:999px;font-size:12px;font-weight:600;padding:5px 11px;text-decoration:none;transition:all .14s}
+    .chip:hover{color:var(--text);border-color:var(--border-2);background:var(--panel-3)}
+    .badge{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:6px;background:var(--panel-3);color:var(--text-2)}
+    .badge.teal{background:rgba(51,224,192,.12);color:var(--teal)}
+    .note{color:var(--text-3);font-size:12px}
+    /* hero */
+    .hero{padding:26px 0 18px;align-items:flex-end}
+    .eyebrow,.section-kicker,.assist-eyebrow,.verdict-label,.reward-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+    .hero h1{font-size:28px;letter-spacing:-.02em;font-weight:800;margin:6px 0 8px;line-height:1.15}
+    .hero h1 em{color:var(--teal)}.hero p{font-size:13.5px;color:var(--text-2);max-width:640px}
+    .hero-tag{border-left:2px solid var(--border-2);color:var(--text-3);max-width:260px;font-size:12px}
+    /* panels */
+    .panel,.output,.gold-reference{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border);border-radius:var(--radius);box-shadow:none}
+    .panel-pad,.output-head,.equiv{padding:20px}.output-foot{padding:0 20px 20px;color:var(--text-3)}
+    .output-head{border-bottom:1px solid var(--border)}
+    .panel-title{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+    .numtag{width:auto;height:auto;padding:2px 8px;border:0;border-radius:6px;background:rgba(51,224,192,.12);color:var(--teal);font-size:10.5px;font-weight:800;letter-spacing:.05em}
+    .help,.hint,.more-note,.result-summary,.share-math,.table-header p{color:var(--text-3)}
+    .field-label{color:var(--text-2);font-weight:600}.field-label small{color:var(--text-3)}
+    .control{height:42px;background:var(--panel-2);border:1px solid var(--border-2);border-radius:10px;color:var(--text);transition:border-color .15s,box-shadow .15s}
+    .control:focus{border-color:var(--teal-dim);box-shadow:0 0 0 3px rgba(51,224,192,.12)}
+    .control option{background:var(--panel-2)}
+    input[type=range]{accent-color:var(--teal)}
+    .sectline{border-top-color:var(--border)}
+    .presets button{border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--text-2);font-weight:600;font-size:12px;padding:6px 11px}
+    .presets button:hover{color:var(--text);border-color:var(--border-2);background:var(--panel-3)}
+    .presets button.active{color:var(--teal);border-color:var(--teal-dim);background:rgba(51,224,192,.08)}
+    .view-switch,#tr-mode{display:inline-flex;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+    .view-switch button{color:var(--text-3);font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:7px}
+    .view-switch button:hover{color:var(--text-2)}
+    .view-switch button.active{color:var(--teal);background:var(--panel-3);box-shadow:inset 0 0 0 1px var(--border-2)}
+    /* role picker + action cards */
+    .role-btn,.act{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-2);transform:none}
+    .role-btn:hover,.act:hover{border-color:var(--border-2);background:var(--panel-3);transform:none}
+    .role-btn.active,.act:has(input:checked){border-color:var(--teal-dim);background:rgba(51,224,192,.08);box-shadow:none;color:var(--text)}
+    .role-btn .r-ico,.act-ico{font-family:var(--font);font-weight:800;font-size:13px;background:var(--panel-3);border:0;color:var(--text-2);border-radius:8px}
+    .act-ico{font-size:16px}
+    .role-btn.active .r-ico{background:linear-gradient(135deg,var(--teal),#7ff0dc);color:#061410;box-shadow:0 4px 14px rgba(51,224,192,.25)}
+    .act:has(input:checked) .act-ico{background:rgba(51,224,192,.14);color:var(--teal)}
+    .role-btn small,.act span.subtitle{color:var(--text-3)}
+    .role-chip{background:var(--panel-2);border-color:var(--border);color:var(--text-2);font-weight:600}.role-chip b{color:var(--teal)}
+    .quest-toggle{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+    .quest-toggle input{accent-color:var(--teal)}.quest-toggle strong{color:var(--text)}.quest-toggle small{color:var(--text-3)}
+    .assist-config{background:var(--panel-3);border:1px solid var(--border-2);border-radius:var(--radius-sm)}
+    .assist-eyebrow{color:var(--teal)}
+    .share-option{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+    .share-option:has(input:checked){border-color:var(--teal-dim);background:rgba(51,224,192,.1);box-shadow:none}
+    .share-option strong{color:var(--text)}.share-option span{color:var(--text-3)}
+    .share-divider{background:var(--border)}
+    .share-person{background:var(--panel-2);border-color:var(--border);color:var(--text-2)}
+    .share-person.is-you{background:rgba(51,224,192,.1);border-color:var(--teal-dim);color:var(--teal)}
+    .share-result{background:rgba(51,224,192,.08);border-color:var(--teal-dim);color:var(--text-2)}
+    .reset{color:var(--text-3)}.reset:hover{color:var(--text)}
+    /* reward tiles */
+    .reward-tile,.reward-tile.gold-tile,.ev,.mini-box,.per,.ms-out,.tr-result,.wv{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+    .reward-amount strong,.big-number strong{letter-spacing:-.03em;font-weight:800}
+    .reward-amount span,.gold-amount span{color:var(--text-3)}
+    .reward-tile.gold-tile .reward-label{color:var(--text-3)}
+    .gold-explanation{background:rgba(233,182,76,.06);border-left:3px solid var(--gold);color:var(--text-2);border-radius:0 8px 8px 0}
+    .progress-track,.be-track{background:var(--panel-3)}
+    .progress-fill,.be-fill{background:linear-gradient(90deg,var(--teal-dim),var(--teal))}
+    .be-mark{background:var(--gold);box-shadow:none}
+    .progress-title strong{color:var(--gold)}
+    .camp{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+    .camp .avatar{background:var(--panel-3);border:0;border-radius:8px}
+    .camp-comparisons small{color:var(--text-3)}
+    .equiv-heading h3{font-size:14px}.equiv-heading span,.compare-key{color:var(--text-3)}
+    .equiv-group{color:var(--text-3);letter-spacing:.06em}
+    /* verdict */
+    .verdict{background:rgba(51,224,192,.07);border:1px solid var(--teal-dim);border-left:3px solid var(--teal);border-radius:var(--radius-sm)}
+    .verdict.farm{background:rgba(233,182,76,.07);border-color:var(--gold-dim);border-left-color:var(--gold)}
+    .verdict.flip{background:rgba(75,155,255,.07);border-color:#2c5a95;border-left-color:var(--blue)}
+    .verdict-call{letter-spacing:-.03em;font-weight:900}.verdict p{color:var(--text-2)}
+    .ev small,.mini-box small{color:var(--text-3)}.ev em{color:var(--text-3)}
+    .why li{color:var(--text-2)}.why li:before{color:var(--teal)}
+    /* tables (project .tbl look) */
+    .table-header h2,.gold-reference h2{font-size:20px;letter-spacing:-.01em;font-weight:800}
+    .table-container,.tr-table{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:none}
+    .xp-table th,.role-table th,.tr-table th,.plate-table th{background:var(--panel);color:var(--text-3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .xp-table th,.xp-table td,.role-table th,.role-table td,.tr-table th,.tr-table td{border-bottom:1px solid var(--border);border-right:0}
+    .xp-table tbody tr:nth-child(even),.xp-table tbody tr:nth-child(even) td:nth-child(-n+2){background:transparent}
+    .xp-table th:first-child,.xp-table td:first-child,.xp-table th:nth-child(2),.xp-table td:nth-child(2){background:var(--panel)}
+    .xp-table th:first-child,.xp-table th:nth-child(2){background:var(--panel)}
+    .xp-table tbody tr:hover,.role-table tbody tr:hover,.tr-table tbody tr:hover{background:rgba(255,255,255,.025)}
+    .xp-table tbody tr.selected,.xp-table tbody tr.selected:hover,.xp-table tbody tr.selected td:nth-child(-n+2),.role-table tbody tr.selected{background:rgba(51,224,192,.08)}
+    .xp-table th.sep,.xp-table td.sep{border-left:1px solid var(--border-2)}
+    .plate-table{border-color:var(--border)}.plate-table th,.plate-table td{border-bottom-color:var(--border)}
+    .plate-table tr.sel td,.tr-table tr.sel td{background:rgba(51,224,192,.1);color:var(--text)}
+    .tag{border-radius:6px;font-size:10.5px;letter-spacing:.05em;padding:2px 8px}
+    .tag.roam{background:rgba(70,209,127,.12);color:var(--win);border:0}
+    .tag.sit{background:rgba(75,155,255,.12);color:var(--blue);border:0}
+    .tag.farm{background:rgba(233,182,76,.12);color:var(--gold);border:0}
+    /* playbooks → project insight cards */
+    .pb{background:var(--panel-2);border:1px solid var(--border);border-left:3px solid var(--border-2);border-radius:var(--radius-sm)}
+    .pb.active{border-left-color:var(--teal);box-shadow:none}
+    .pb h3 span{font-family:var(--font);color:var(--teal);font-weight:900}
+    .pb .now{color:var(--teal)}.pb li{color:var(--text-2)}.pb li b{color:var(--text)}
+    .pb .q{color:var(--text-3);border-top-color:var(--border)}
+    /* travel map */
+    .map-wrap{border:1px solid var(--border);border-radius:10px;background:#0a140a}
+    .tr-use{background:linear-gradient(135deg,#33e0c0,#59e9d1);color:#05130f;border:0;border-radius:9px;font-weight:700}
+    .tr-use:hover{filter:brightness(1.06);background:linear-gradient(135deg,#3ee9c9,#64eed7)}
+    .tr-big strong,.ms-out strong{letter-spacing:-.03em}
+    .ms-out{background:rgba(51,224,192,.06);border-color:var(--teal-dim)}
+    .per b{color:var(--teal)}
+    /* gold reference + footer */
+    .gold-reference{padding:22px}.mini-box strong{color:var(--gold)}
+    .footnotes{border-top:1px solid var(--border)}.footnotes p{color:var(--text-3)}
+    .sources a{border:1px solid var(--border);background:var(--panel-2);border-radius:999px;color:var(--text-2);font-weight:600}
+    .sources a:hover{color:var(--text);border-color:var(--border-2);background:var(--panel-3)}
+    .footer{border-top:1px solid var(--border);color:var(--text-3);font-size:12px;text-align:center;padding:20px;margin-top:0}
+    @media(max-width:900px){.tracked-chips{display:none}}
+    @media(max-width:660px){.wrap{padding:0 14px 40px}.topbar-inner{height:56px}.hero h1{font-size:24px}.topbar .badge{display:none}}
+    section[id],main[id]{scroll-margin-top:78px}
+    .output-head .panel-title{color:var(--text)}
+    .tag{white-space:nowrap}.role-table td{vertical-align:middle}
+  </style>
+</head>
+<body>
+<header class="topbar"><div class="wrap topbar-inner">
+  <a href="#top" class="brand"><span class="brand-mark">RA</span><span>Riot Analizer</span></a>
+  <span class="badge teal">XP · Gold · Roam lab</span>
+  <div class="topbar-spacer"></div>
+  <nav class="tracked-chips" aria-label="Sections"><a class="chip" href="#top">Calculator</a><a class="chip" href="#roam">Roam vs farm</a><a class="chip" href="#travel">Travel map</a><a class="chip" href="#role-compare">Roles</a><a class="chip" href="#table-section">XP table</a></nav>
+</div></header>
+<div class="wrap">
+  <main id="top">
+    <section class="hero">
+      <div><div class="eyebrow">League of Legends · XP & gold economy · every role</div><h1>Every action has a price. <em>Roam or farm?</em></h1><p>Pick a role to see what kills, assists, waves and plates are worth for it — then weigh a roam against the farm you would leave behind, minute by minute.</p></div>
+      <div class="hero-tag note">Built around patch 26.1+ rules: 0:30 first wave, 25s/20s waves after 14:00/30:00, role quests and permanent plates.</div>
+    </section>
+
+    <nav class="role-bar" role="tablist" aria-label="Choose role" id="role-bar"></nav>
+    <div class="role-strip" id="role-strip" aria-live="polite"></div>
+
+    <section class="workspace" aria-label="Action calculator">
+      <div class="panel"><div class="panel-pad">
+        <h2 class="panel-title"><span class="numtag">01</span> Action calculator</h2>
+        <p class="help">Change an input to instantly recalculate your reward. Level and game time here also drive the roam analysis below.</p>
+        <div class="controls">
+          <div class="two">
+            <label class="field"><span class="field-label">Your level</span><select id="your-level" class="control" aria-label="Your level"></select></label>
+            <label class="field"><span class="field-label">Opponent level <small>kills only</small></span><select id="enemy-level" class="control" aria-label="Opponent level"></select></label>
+          </div>
+          <div class="field">
+            <label class="field-label" for="game-time">Game time <small>mm:ss · 0:00–60:00</small></label>
+            <div class="timebox">
+              <input id="game-time" class="control" type="text" inputmode="numeric" value="08:00" aria-describedby="time-hint" autocomplete="off">
+              <div class="presets" role="group" aria-label="Game time presets">
+                <button type="button" data-time="04:00">4m</button><button type="button" data-time="08:00" class="active">8m</button><button type="button" data-time="12:00">12m</button><button type="button" data-time="16:00">16m</button><button type="button" data-time="20:00">20m</button><button type="button" data-time="28:00">28m</button>
+              </div>
+            </div>
+            <p class="hint" id="time-hint">Time changes wave interval, cannon frequency, cannon gold, plate gold and (for junglers) lane-minion XP.</p>
+          </div>
+          <hr class="sectline">
+          <div class="field-label" style="margin-bottom:-8px">Action <small>Select one</small></div>
+          <div class="action-grid" role="radiogroup" aria-label="Choose action">
+            <label class="act"><input type="radio" name="action" value="solo" checked><span class="act-ico" aria-hidden="true">⚔</span><span><strong>Solo kill</strong><span class="subtitle">No XP-sharing allies</span></span></label>
+            <label class="act"><input type="radio" name="action" value="assist"><span class="act-ico" aria-hidden="true">✦</span><span><strong>Get an assist</strong><span class="subtitle">You get an assist; 1–4 others share XP</span></span></label>
+            <label class="act"><input type="radio" name="action" value="wave"><span class="act-ico" aria-hidden="true">Ⅲ</span><span><strong>Clear wave</strong><span class="subtitle">Without a cannon</span></span></label>
+            <label class="act"><input type="radio" name="action" value="cannon"><span class="act-ico" aria-hidden="true">◈</span><span><strong>Clear cannon wave</strong><span class="subtitle">Wave with siege minion</span></span></label>
+            <label class="act"><input type="radio" name="action" value="plate"><span class="act-ico" aria-hidden="true">▣</span><span><strong>Turret plate</strong><span class="subtitle">Outer turret, 2026 decay</span></span></label>
+            <label class="act"><input type="radio" name="action" value="minute"><span class="act-ico" aria-hidden="true">⏱</span><span><strong>1 minute of farming</strong><span class="subtitle">Role-typical farm, perfect CS</span></span></label>
+          </div>
+          <div class="assist-config" id="assist-config" hidden>
+            <p class="assist-eyebrow">You are the assister, not the killer</p>
+            <div class="field-label" id="share-count-label">How many OTHER players share XP with you? <small>1–4</small></div>
+            <div class="share-choices" role="radiogroup" aria-labelledby="share-count-label" aria-describedby="assist-hint">
+              <label class="share-option"><input type="radio" name="share-count" value="1" checked><strong>1</strong><span>other player</span></label>
+              <label class="share-option"><input type="radio" name="share-count" value="2"><strong>2</strong><span>other players</span></label>
+              <label class="share-option"><input type="radio" name="share-count" value="3"><strong>3</strong><span>other players</span></label>
+              <label class="share-option"><input type="radio" name="share-count" value="4"><strong>4</strong><span>other players</span></label>
+            </div>
+            <div class="share-divider"></div>
+            <p class="share-total" id="share-total">2 players share XP equally</p>
+            <div class="share-party" id="share-party" aria-label="XP-sharing champions"></div>
+            <p class="share-math" id="share-math">Your XP = shared kill pool ÷ 2.</p>
+            <p class="hint" id="assist-hint">The other players always include the killer.</p>
+            <div class="share-divider"></div>
+            <label class="field" for="gold-assisters"><span class="field-label">Players with an official assist <small>you included · for gold</small></span>
+              <select class="control" id="gold-assisters" aria-describedby="gold-assist-explain"><option value="1">1 — only you have an assist</option></select>
+            </label>
+            <p class="hint" id="gold-assist-explain">XP is shared with eligible nearby players, but <strong>assist gold goes only to players credited with an assist.</strong></p>
+          </div>
+          <div class="assist-config" id="plate-config" hidden>
+            <p class="assist-eyebrow">Which turret and which plate?</p>
+            <div class="two">
+              <label class="field"><span class="field-label">Turret</span><select id="plate-tier" class="control"><option value="outer">Outer · T1 (9,000 HP)</option><option value="inner">Inner · T2 (5,000 HP)</option><option value="inhib">Inhibitor · T3 (4,750 HP)</option></select></label>
+              <label class="field"><span class="field-label">Allies sharing the gold <small>nearby / hitting it</small></span><select id="plate-sharers" class="control"><option value="1">1 — only you</option><option value="2">2 — you + 1</option><option value="3">3 — you + 2</option><option value="4">4 — you + 3</option><option value="5">5 — whole team</option></select></label>
+            </div>
+            <div class="field-label" id="plate-idx-label" style="margin-top:14px">Plate <small>breaks at % of turret HP missing</small></div>
+            <div class="share-choices plate-choices" role="radiogroup" aria-labelledby="plate-idx-label">
+              <label class="share-option"><input type="radio" name="plate-idx" value="0" checked><strong>1</strong><span>10%</span></label>
+              <label class="share-option"><input type="radio" name="plate-idx" value="1"><strong>2</strong><span>25%</span></label>
+              <label class="share-option"><input type="radio" name="plate-idx" value="2"><strong>3</strong><span>45%</span></label>
+              <label class="share-option"><input type="radio" name="plate-idx" value="3"><strong>4</strong><span>70%</span></label>
+              <label class="share-option"><input type="radio" name="plate-idx" value="4"><strong>5</strong><span>100% · dies</span></label>
+            </div>
+            <label class="quest-toggle" id="first-turret-wrap" style="margin-top:12px"><input type="checkbox" id="first-turret"><span><strong>First turret of the game</strong><small>+300g bonus, split among nearby players, when plate 5 breaks (the turret dies).</small></span></label>
+            <div class="plate-table" id="plate-table"></div>
+            <p class="hint" id="plate-hint"></p>
+          </div>
+          <label class="quest-toggle partner-toggle" id="partner-wrap" hidden><input type="checkbox" id="partner" checked><span><strong>Lane partner in XP range</strong><small id="partner-sub">Bot and support split lane-minion XP: 65% each instead of 100% (patch 26.1 share table).</small></span></label>
+          <label class="quest-toggle"><input type="checkbox" id="quest-complete"><span><strong id="quest-title">Role quest completed</strong><small id="quest-sub">Role-specific quest reward.</small></span></label>
+          <div class="bottom-small"><span class="hint" id="assume-hint">Wave gold assumes every minion is last-hit by you. XP assumes no extra nearby allies.</span><button class="reset" type="button" id="reset">Reset choices</button></div>
+        </div>
+      </div></div>
+      <div class="panel output" aria-live="polite" aria-atomic="false">
+        <div class="output-head">
+          <h2 class="panel-title"><span class="numtag">02</span> Your rewards <small style="font-size:12px;color:var(--muted);font-weight:600" id="role-label-out"></small></h2>
+          <div class="reward-pair"><div class="reward-tile"><div class="reward-label">Experience earned</div><div class="reward-amount xp-amount"><strong id="earned-xp">0</strong><span>XP</span></div></div><div class="reward-tile gold-tile"><div class="reward-label">Gold earned</div><div class="reward-amount gold-amount"><strong id="earned-gold">0</strong><span>gold</span></div></div></div>
+          <p class="result-summary" id="calc-description"></p>
+          <p class="share-result" id="share-result" hidden><strong>You: assist.</strong> <span id="share-result-detail"></span></p>
+          <div class="progress-title"><span>Equivalent progress toward next level</span><strong id="level-pct">0%</strong></div>
+          <div class="progress-track" role="progressbar" id="progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Percent of a level gained"><div class="progress-fill" id="progress-fill"></div></div>
+          <p class="more-note" id="level-note"></p>
+          <p class="gold-explanation" id="gold-detail"></p>
+        </div>
+        <div class="equiv"><div class="equiv-heading"><h3 id="equiv-title">That's equivalent to</h3><span>XP and gold compared separately</span></div><div class="compare-key"><span class="legend-dot teal-dot"></span> XP equivalent <span class="legend-dot gold-dot"></span> Gold equivalent</div><div class="camp-list" id="camp-list"></div></div>
+        <div class="output-foot" id="comparison-footnote"></div>
+      </div>
+    </section>
+
+    <section class="roam" id="roam" aria-label="Roam versus farm">
+      <div class="table-header">
+        <div><div class="section-kicker">Decision lab / opportunity cost</div><h2>Roam or farm your lane?</h2><p>Uses your role, level and game time from above. A roam pays off when your takedown chance is above the break-even. Team mode counts the gold your allies get and the gold the enemy gets.</p></div>
+      </div>
+      <div class="roam-grid">
+        <div class="panel"><div class="panel-pad">
+          <h2 class="panel-title"><span class="numtag">03</span> Roam scenario</h2>
+          <p class="help" id="roam-help">Defaults change with role. Tune them to the play you're considering.</p>
+          <div class="controls">
+            <div class="two">
+              <label class="slider-field"><span class="field-label">Time away from lane <strong id="v-duration">40s</strong></span><input type="range" id="duration" min="15" max="120" step="5" value="40"><span class="hint" id="duration-hint">Walk there + fight + walk back.</span></label>
+              <label class="field" id="wave-state-wrap"><span class="field-label">Your wave when you leave</span><select id="wave-state" class="control"><option value="crash">Crashed into enemy tower</option><option value="neutral">Neutral / mid-lane</option><option value="losing">Pushing toward your tower</option></select></label>
+              <label class="slider-field" id="camp-speed-wrap" hidden><span class="field-label">Seconds per camp if you farm instead <strong id="v-camp">30s</strong></span><input type="range" id="camp-speed" min="20" max="60" step="5" value="30"><span class="hint">Includes walking between camps.</span></label>
+            </div>
+            <div class="three">
+              <label class="slider-field"><span class="field-label">Takedown chance <strong id="v-kill">45%</strong></span><input type="range" id="kill-chance" min="0" max="100" step="5" value="45"></label>
+              <label class="slider-field"><span class="field-label">You get the kill <strong id="v-credit">50%</strong></span><input type="range" id="kill-credit" min="0" max="100" step="5" value="50"></label>
+              <label class="slider-field"><span class="field-label">You die <strong id="v-death">15%</strong></span><input type="range" id="death-chance" min="0" max="100" step="5" value="15"></label>
+            </div>
+            <label class="field"><span class="field-label">Judge the roam by</span><select id="mode" class="control"><option value="team" selected>Team value — your gain + allies' gold/XP − what the enemy gets</option><option value="self">Personal value — only your own gold/XP</option></select></label>
+            <div class="three">
+              <label class="field"><span class="field-label">Allies in the fight <small>besides you</small></span><select id="allies" class="control"><option value="1">1 ally (e.g. the laner you roam to)</option><option value="2">2 allies</option><option value="3">3 allies</option><option value="4">4 allies</option></select></label>
+              <label class="field"><span class="field-label">Plates you expect to lose <small>team cost</small></span><select id="plates-lost" class="control"><option value="0">0 — opponent can't punish</option><option value="1">1 plate</option><option value="2">2 plates</option><option value="3">3 plates</option></select></label>
+              <label class="field"><span class="field-label">Turret at risk</span><select id="risk-tier" class="control"><option value="outer">Outer · T1</option><option value="inner">Inner · T2</option><option value="inhib">Inhibitor · T3</option></select></label>
+            </div>
+            <div class="three">
+              <label class="slider-field"><span class="field-label">Your CS rate <strong id="v-lh">85%</strong></span><input type="range" id="lh" min="50" max="100" step="5" value="85"></label>
+              <label class="field"><span class="field-label">Value of 1 XP <small>in gold</small></span><select id="xp-weight" class="control"><option value="0.5">0.5g · gold matters more</option><option value="0.75">0.75g</option><option value="1" selected>1g · neutral</option><option value="1.5">1.5g · level spike</option></select></label>
+              <label class="field"><span class="field-label">Follow-up gold on success <small>plates/objective</small></span><input type="number" id="bonus" class="control" min="0" max="2000" step="10" value="0"></label>
+            </div>
+          </div>
+        </div></div>
+        <div class="panel output"><div class="panel-pad">
+          <h2 class="panel-title"><span class="numtag">04</span> Verdict</h2>
+          <div class="verdict" id="verdict" style="margin-top:16px"><div class="verdict-label" id="verdict-label">Expected net value</div><div class="verdict-call" id="verdict-call">ROAM</div><p id="verdict-text"></p></div>
+          <div class="ev-grid">
+            <div class="ev"><small>Farm you give up</small><span class="g" id="ev-farm-g">0g</span><span class="x" id="ev-farm-x">0 XP</span><em id="ev-farm-n"></em></div>
+            <div class="ev"><small>Expected roam gain</small><span class="g" id="ev-roam-g">0g</span><span class="x" id="ev-roam-x">0 XP</span><em id="ev-roam-n"></em></div>
+            <div class="ev"><small>Expected death cost</small><span class="g" id="ev-death-g">0g</span><span class="x" id="ev-death-x">0 XP</span><em id="ev-death-n"></em></div>
+          </div>
+          <div class="be"><div class="be-legend"><span>Your takedown chance <i id="be-you">45%</i></span><span>Break-even <b id="be-val">30%</b></span></div><div class="be-track"><div class="be-fill" id="be-fill"></div><div class="be-mark" id="be-mark"></div></div></div>
+          <ul class="why" id="why"></ul>
+        </div></div>
+      </div>
+      <div class="panel chart-panel"><div class="panel-pad">
+        <h2 class="panel-title"><span class="numtag">05</span> When does roaming pay off? <small style="font-size:12px;color:var(--muted);font-weight:600">break-even takedown chance across the game</small></h2>
+        <p class="help">Below a line = roam is worth it with that wave state. Levels are estimated per role from typical farm, so this is a trend, not a promise.</p>
+        <div class="chart-wrap" id="chart"></div>
+        <div class="chart-legend" id="chart-legend"></div>
+        <div class="field-label" style="margin-top:18px">Wave clock <small>next waves from your game time · cannon waves are the best moment to shove, then roam</small></div>
+        <div class="wave-clock" id="wave-clock"></div>
+      </div></div>
+    </section>
+
+
+    <section class="table-section" id="travel" aria-label="Travel time map">
+      <div class="table-header">
+        <div><div class="section-kicker">Pathing / movement speed</div><h2>What do “10s” and “20s” of walking mean?</h2><p>Travel follows walkable paths around walls, not a straight line. Set your movement speed, then pick or click a start (A) and a destination (B).</p></div>
+      </div>
+      <div class="travel-grid">
+        <div class="panel"><div class="panel-pad">
+          <h2 class="panel-title"><span class="numtag">06</span> Movement speed & route</h2>
+          <div class="controls">
+            <div class="two">
+              <label class="field"><span class="field-label">Champion base MS</span><select id="ms-base" class="control"><option value="325">325</option><option value="330">330</option><option value="335">335</option><option value="340" selected>340</option><option value="345">345</option><option value="350">350</option><option value="355">355</option></select></label>
+              <label class="field"><span class="field-label">Boots</span><select id="ms-boots" class="control"><option value="0">No boots (+0)</option><option value="25">Boots of Speed (+25)</option><option value="45" selected>Tier 2 boots (+45)</option><option value="55">Boots of Swiftness (+55)</option><option value="50">Tier 3 boots · mid quest (+50)</option><option value="65">Swiftmarch · mid quest (+65)</option></select></label>
+            </div>
+            <div class="two">
+              <label class="slider-field"><span class="field-label">Bonus % MS <strong id="v-pct">0%</strong></span><input type="range" id="ms-pct" min="0" max="60" step="1" value="0"><span class="hint">Ghost, Phase Rush, item passives…</span></label>
+              <label class="field"><span class="field-label">Extra flat MS <small>items/runes</small></span><input type="number" id="ms-flat" class="control" min="0" max="200" step="5" value="0"></label>
+            </div>
+            <label class="quest-toggle"><input type="checkbox" id="ms-jq"><span><strong>Jungle quest: +8% out of combat in jungle & river</strong><small>Applied only to jungle, river and pit cells.</small></span></label>
+            <div class="ms-out"><div><span class="field-label" style="margin:0">Final movement speed</span><strong id="ms-final">385</strong><small id="ms-final-note">units per second</small></div><div class="ms-per" id="ms-per"></div></div>
+            <hr class="sectline">
+            <div class="two">
+              <label class="field"><span class="field-label">A · start</span><select id="tr-start" class="control"></select></label>
+              <label class="field"><span class="field-label">B · destination</span><select id="tr-dest" class="control"></select></label>
+            </div>
+            <div class="view-switch" id="tr-mode" role="group" aria-label="What a click on the map sets"><button type="button" data-mode="start" class="active" aria-pressed="true">Click sets A</button><button type="button" data-mode="dest" aria-pressed="false">Click sets B</button></div>
+            <div class="tr-result" id="tr-result"></div>
+            <label class="slider-field"><span class="field-label">Time spent fighting <strong id="v-fight">10s</strong></span><input type="range" id="tr-fight" min="0" max="30" step="1" value="10"></label>
+            <button type="button" class="tr-use" id="tr-use">Use in the roam calculator</button>
+            <div id="tr-within" class="tr-within"></div>
+          </div>
+        </div></div>
+        <div class="panel"><div class="panel-pad">
+          <div class="map-wrap"><canvas id="map-canvas" aria-label="Schematic Summoner's Rift travel-time map. Click to set points."></canvas></div>
+          <p class="hint" id="tr-hover">Hover the map to see the travel time to any point.</p>
+          <div class="chart-legend" id="tr-legend"><span><i class="sw" style="background:#33e0c0"></i>≤5s</span><span><i class="sw" style="background:#46d17f"></i>≤10s</span><span><i class="sw" style="background:#4b9bff"></i>≤15s</span><span><i class="sw" style="background:#a072ff"></i>≤20s</span><span><i class="sw" style="background:#e9b64c"></i>≤30s</span><span><i class="sw" style="background:#f0576b"></i>≤45s</span><span><i class="sw" style="background:#e8ebf2"></i>Path</span><span><i class="sw" style="background:#aab2c5"></i>Straight line</span></div>
+          <div class="map-src">
+            <label class="field"><span class="field-label">Walls come from</span><select id="tr-src" class="control"><option value="minimap" selected>Riot minimap · auto-detected</option><option value="schematic">Hand-drawn schematic</option></select></label>
+            <label class="slider-field"><span class="field-label">Wall detection <strong id="v-thr">—</strong></span><input type="range" id="tr-thr" min="10" max="200" step="1" value="80"><span class="hint">Higher = more dark terrain counts as wall.</span></label>
+          </div>
+          <label class="quest-toggle" style="margin-top:10px"><input type="checkbox" id="tr-mask"><span><strong>Show detected walls</strong><small>Red tint = not walkable. Use it to check the detection against the minimap.</small></span></label>
+          <p class="hint" id="tr-status">Loading the Riot minimap (Data Dragon map11.png, same image and projection as the project's match map)…</p>
+          <div class="tr-table" id="tr-table"></div>
+        </div></div>
+      </div>
+      <p class="hint" style="margin-top:12px">The map is Riot's Data Dragon minimap (map11.png), projected over game coordinates −120…14,870 exactly like the project's MatchAnalysis view. Walls are detected from the image's brightness on a 75-unit grid, and the lanes, river and bases are always kept walkable. Offline, or if the image can't be read, it falls back to a hand-drawn schematic. Treat times as approximate (±5–10%). MS soft caps apply above 415 (×0.8) and 490 (×0.5). Slows, flashes, dashes and Homeguard are not included.</p>
+    </section>
+
+    <section class="table-section" id="role-compare">
+      <div class="table-header">
+        <div><div class="section-kicker">All roles / at your game time</div><h2>Role economy & roam windows</h2><p>Each role with its own default roam (crashed wave, its usual duration and odds). Click a row to switch role.</p></div>
+      </div>
+      <div class="table-container" tabindex="0" aria-label="Role comparison table"><table class="role-table"><thead><tr><th>Role</th><th>Est. level</th><th>XP / wave</th><th>Gold / wave</th><th>Farm per min</th><th>Default roam</th><th>Roam costs</th><th>Takedown value (you)</th><th>Break-even</th><th>Read</th></tr></thead><tbody id="role-body"></tbody></table></div>
+      <div class="playbooks" id="playbooks"></div>
+    </section>
+
+    <section class="table-section" id="table-section">
+      <div class="table-header">
+        <div><div class="section-kicker">Quick reference / 18 levels</div><h2 id="table-title">Full XP comparison table</h2><p id="table-sub">Click a level row to use that level in the calculator.</p></div>
+        <div class="view-switch" role="group" aria-label="How to display XP values"><button type="button" data-mode="both" class="active" aria-pressed="true">XP + %</button><button type="button" data-mode="xp" aria-pressed="false">XP only</button><button type="button" data-mode="pct" aria-pressed="false">% of level</button></div>
+      </div>
+      <div class="table-container" tabindex="0" aria-label="Scrollable experience table">
+        <table class="xp-table" id="xp-table"><thead><tr id="table-head"></tr></thead><tbody id="table-body"></tbody></table>
+      </div>
+      <p class="mobile-scroll-msg">← Swipe sideways inside the table to see the time columns →</p>
+      <div class="table-tip"><span id="table-tip"></span><span class="legend"><span><b></b> Green row = chosen level</span><span style="color:var(--gold)">Gold = cannon wave</span></span></div>
+    </section>
+
+    <section class="gold-reference" aria-label="Gold reward reference">
+      <div class="section-kicker">Gold economy / 2026</div>
+      <h2>Where the gold comes from</h2>
+      <p>Lane minion gold assumes you last-hit. Melee 20g, caster 14g, cannon 50g +1g per 90s. Plates are permanent since 26.1 and lose 10g per minute from 11:00 (max −40g). Support gold comes from World Atlas charges, not last hits.</p>
+      <div class="mini-grid">
+        <div class="mini-box"><strong>300–420g</strong><small>Normal champion kill · scales with victim level</small></div>
+        <div class="mini-box"><strong>102g</strong><small>Standard 3 melee + 3 caster wave</small></div>
+        <div class="mini-box"><strong>120 → 80g</strong><small>Outer plate, decays 11:00–15:00 · inner & inhibitor: 600g over 5 plates, no decay · split with nearby allies</small></div>
+        <div class="mini-box"><strong>18g / charge</strong><small>World Atlas: 1 charge per 20s, max 3 · ADC keeps the minion gold</small></div>
+        <div class="mini-box"><strong>+2g / minion</strong><small>Bot quest · plus +50g per takedown and +300g once</small></div>
+        <div class="mini-box"><strong>+12.5% XP</strong><small>Top quest · plus +600 XP once and level cap 20</small></div>
+        <div class="mini-box"><strong>+10g / +10 XP</strong><small>Jungle quest · per large monster</small></div>
+        <div class="mini-box"><strong>30s / 25s / 20s</strong><small>Wave interval before 14:00 / 14–30 / after 30:00</small></div>
+      </div>
+    </section>
+    <div class="footnotes">
+      <section><h3>Assumptions and limits</h3>
+        <p><strong>Champion kills:</strong> 300g at victim levels 1–6, +10g per level after that. First Blood, bounties and shutdowns are excluded. Assist gold is a pool of 50% of the base bounty, split between credited assisters. Kill XP uses the 2026 level-gap rule (±20% per level beyond the first, minimum 40%), and shared kill XP uses 66.6% / 82% / 90% of solo XP by level band.</p>
+        <p><strong>Lane minions (26.1):</strong> Melee 62 XP / 20g, caster 31 XP / 14g, cannon 75 XP / 50g +1g per 90s. Minion XP share per champion is 100 / 65 / 43.3 / 32.5% for 1–4 champions. Waves come every 30s, 25s from 14:00 and 20s from 30:00. Cannons come every 3rd wave, every 2nd from 14:00 and every wave from 25:00. From 14:00 cannon waves have one fewer melee, and from 30:00 one fewer caster as well. Jungle-item users get 30% → 100% minion XP between 0:00 and 20:00. The 25% off-lane penalty before level 3 is not modelled.</p>
+        <p><strong>Roam model:</strong> Lost waves = (time away − free window) ÷ wave interval. The free window is 1.2 intervals if you crashed, 0.4 if neutral, and 0 plus half a wave lost to your tower if the wave is pushing to you. Death cost = base respawn by level (≈+2% per minute after 15:00, capped at +50%) plus about 25s walking, valued at your farm rate. In team mode, the killer's gold, allies' XP shares, your ADC's extra XP (support roams), the enemy's bounty on you and lost plates are added. Jungle camps wait for you, so only 50% of gank time counts as lost farm. Combined value = gold + XP × your XP value. Estimated levels assume about 85% XP uptake from waves or camps.</p>
+        <p><strong>Turrets (26.1):</strong> Every turret has 5 plates that break at 10 / 25 / 45 / 70 / 100% missing HP. So plates need 10 / 15 / 20 / 25 / 30% of turret HP for the same gold, and plate 5 is the turret kill. Outer plates are 120g (−10g/min from 11:00, min 80g). Riot lists inner and inhibitor turrets as 600g over 5 plates; an even 120g split is assumed. Turret local gold is now 0, and the first turret adds 300g. Global gold on destruction is not modelled. Nexus turrets have plates too, but no gold value is published.</p>
+        <p><strong>Uncertain values:</strong> Patch 26.1 notes say plates are permanent; older wiki pages still say they fall at 14:00. Respawn timers and the cannon cadence after 14:00 come from community sources. Support quest gold differs between sources, so it is not added.</p>
+      </section>
+      <section><h3>References</h3><div class="sources"><a href="https://www.leagueoflegends.com/en-us/news/game-updates/patch-26-1-notes/" target="_blank" rel="noopener">Riot 26.1 · Role quests, waves, plates, XP share</a><a href="https://www.leagueoflegends.com/en-us/news/game-updates/patch-14-10-notes/" target="_blank" rel="noopener">Riot 14.10 · Camp scaling</a><a href="https://wiki.leagueoflegends.com/en-us/Experience_(champion)" target="_blank" rel="noopener">League Wiki · Champion XP</a><a href="https://wiki.leagueoflegends.com/en-us/Fortification" target="_blank" rel="noopener">League Wiki · Turret plates</a><a href="https://www.riftpatchnotes.com/lol/system/minions" target="_blank" rel="noopener">Rift Patch Notes · Minions</a><a href="https://www.riftpatchnotes.com/lol/item/world-atlas" target="_blank" rel="noopener">Rift Patch Notes · World Atlas</a><a href="https://mobalytics.gg/lol/guides/new-role-quests" target="_blank" rel="noopener">Mobalytics · Role quests</a><a href="https://wiki.leagueoflegends.com/en-us/Assist" target="_blank" rel="noopener">League Wiki · Assist rewards</a></div><p style="margin-top:12px">This page is a standalone, offline-capable reference calculator. It is not affiliated with or endorsed by Riot Games. Numbers shown are calculated estimates and may change with future patches.</p></section>
+    </div>
+  </main>
+</div>
+<footer class="footer">Riot Analizer · XP, gold &amp; roam lab · Summoner's Rift 2026 · not affiliated with Riot Games</footer>
+<script>
+(function(){'use strict';
+  // ---------- Game data (patch 26.1+) ----------
+  const SOLO=[42,114,144,174,204,234,308,392,486,590,640,690,740,790,840,890,940,990];
+  const MONSTER_SCALE=[1,1,1.25,1.30,1.35,1.40,1.45,1.50];
+  const MINION={melee:62,caster:31,cannon:75};
+  const MINION_GOLD={melee:20,caster:14};
+  const XP_SHARE=[1,.65,.433,.325,.26,.217];
+  const RESPAWN=[10,10,12,12,14,16,20,25,28,32.5,35,37.5,40,42.5,45,47.5,50,52.5];
+  const CAMP_LIST=[
+    {id:'gromp',name:'Gromp',base:120,gold:80,icon:'G',color:'#f6d585'},
+    {id:'krugs',name:'Krugs',base:15+10+6*16,gold:15+10+8*14,icon:'K',color:'#aab2c5'},
+    {id:'wolves',name:'Murk Wolves',base:50+2*15,gold:55+2*15,icon:'W',color:'#aab2c5'},
+    {id:'raptors',name:'Raptors',base:20+5*10,gold:35+5*8,icon:'R',color:'#f0576b'},
+    {id:'buff',name:'Red / Blue Buff',base:95,gold:90,icon:'B',color:'#aab2c5'}
+  ];
+  const ROLES={
+    top:{name:'Top',icon:'T',tag:'Solo lane · long walks',duo:false,walk:28,
+      roam:{duration:55,kill:35,credit:50,death:15,allies:2},
+      quest:{title:'Top quest completed',sub:'+12.5% XP from all sources (applied), +600 XP once, level cap 20, Unleashed Teleport / 30% HP shield on TP.'}},
+    jungle:{name:'Jungle',icon:'J',tag:'Camps · ganks',duo:false,walk:20,
+      roam:{duration:35,kill:40,credit:40,death:10,allies:1},
+      quest:{title:'Jungle quest completed',sub:'+10 XP and +10 gold per large monster (applied to camps), Smite 1400, +4% jungle/river move speed.'}},
+    mid:{name:'Mid',icon:'M',tag:'Solo lane · shortest roams',duo:false,walk:22,
+      roam:{duration:40,kill:45,credit:50,death:15,allies:1},
+      quest:{title:'Mid quest completed',sub:'Tier 3 boots + empowered 4s recall every 5 min (−1 min per takedown). No direct XP/gold change.'}},
+    bot:{name:'Bot (ADC)',icon:'A',tag:'Duo lane · gold hungry',duo:true,walk:30,
+      roam:{duration:50,kill:40,credit:55,death:15,allies:2},
+      quest:{title:'Bot quest completed',sub:'+2g per minion and +50g per takedown (applied), +300g once, boots move to a 7th slot.'}},
+    support:{name:'Support',icon:'S',tag:'Duo lane · Atlas gold',duo:true,walk:30,
+      roam:{duration:45,kill:40,credit:15,death:20,allies:1},
+      quest:{title:'Support quest completed',sub:'Control wards cost 40g and 2 can be stored in the quest slot. No direct XP/gold change.'}}
+  };
+  const ROLE_KEYS=['top','jungle','mid','bot','support'];
+  const WAVE_STATES={crash:{free:1.2,extra:0,label:'crashed'},neutral:{free:.4,extra:0,label:'neutral'},losing:{free:0,extra:.5,label:'pushing to you'}};
+
+  // ---------- helpers ----------
+  const $=id=>document.getElementById(id);
+  const fmt=(n,p=1)=>Number(n).toLocaleString('en-US',{maximumFractionDigits:p});
+  const nXP=n=>fmt(Math.round(n*10)/10,1);
+  const g0=n=>fmt(Math.round(n),0);
+  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  const needed=l=>280+100*(l-1);
+  const monsterScale=l=>MONSTER_SCALE[clamp(l,1,8)-1];
+  function toMinutes(str){const x=String(str).trim();
+    if(/^\d{1,2}:\d{1,2}$/.test(x)){const [m,s]=x.split(':').map(Number);if(s>=60)return null;return (m+s/60)<=60?m+s/60:null;}
+    if(/^\d{1,2}(\.\d+)?$/.test(x)){const n=Number(x);return n<=60?n:null;}return null;}
+  function toClock(n){const m=Math.floor(n);const s=Math.round((n-m)*60);return `${String(m+(s===60?1:0)).padStart(2,'0')}:${String(s===60?0:s).padStart(2,'0')}`;}
+
+  // ---------- state ----------
+  let role='jungle',enemyEdited=false,lastValidTime=8,displayMode='both';
+  const you=$('your-level'),enemy=$('enemy-level'),timeInput=$('game-time');
+  const quest=()=>$('quest-complete').checked;
+  const partner=()=>$('partner').checked;
+  const selectedAction=()=>document.querySelector('input[name="action"]:checked').value;
+  const otherPlayerCount=()=>+document.querySelector('input[name="share-count"]:checked').value;
+  const goldAssisters=()=>+$('gold-assisters').value;
+  const plateIdx=()=>+document.querySelector('input[name="plate-idx"]:checked').value;
+
+  // ---------- economy model ----------
+  const waveInterval=t=>t<14?30:t<30?25:20;
+  const cannonFreq=t=>t<14?1/3:t<25?1/2:1;
+  const cannonGold=t=>50+Math.floor(Math.max(0,t-.5)/1.5);
+  const plateGold=t=>120-10*clamp(Math.floor(t)-11,0,4); // 120g until 12:00, then −10g per minute, 80g floor from 15:00
+  const TURRETS={outer:{name:'Outer turret (T1)',hp:9000,decay:true},inner:{name:'Inner turret (T2)',hp:5000,decay:false},inhib:{name:'Inhibitor turret (T3)',hp:4750,decay:false}};
+  const PLATE_AT=[.10,.25,.45,.70,1];
+  const plateValue=(tier,t)=>TURRETS[tier].decay?plateGold(t):600/5;
+  const plateHPpct=i=>PLATE_AT[i]-(i?PLATE_AT[i-1]:0);
+  const plateHP=(tier,i)=>TURRETS[tier].hp*plateHPpct(i);
+  const jungleFactor=t=>.30+.70*(clamp(t,0,20)/20);
+  function comp(type,t){const cannon=type==='cannon'?1:0;let melee=3,caster=t>=30?2:3;if(cannon&&t>=14)melee=2;return {melee,caster,cannon,count:melee+caster+cannon,detail:`${melee} melee + ${caster} caster${cannon?' + 1 cannon':''}`};}
+  const waveXPBase=(type,t)=>{const c=comp(type,t);return c.melee*MINION.melee+c.caster*MINION.caster+c.cannon*MINION.cannon;};
+  const waveGoldBase=(type,t)=>{const c=comp(type,t);return c.melee*MINION_GOLD.melee+c.caster*MINION_GOLD.caster+(c.cannon?cannonGold(t):0);};
+  function xpMult(r,q){return r==='top'&&q?1.125:1;}
+  function laneXPShare(r,p){return ROLES[r].duo&&p?XP_SHARE[1]:1;}
+  // XP a role gets from one wave (before CS rate; XP is gained by proximity)
+  function roleWaveXP(r,type,t,q,p){
+    let xp=waveXPBase(type,t);
+    if(r==='jungle')xp*=jungleFactor(t);else xp*=laneXPShare(r,p);
+    return xp*xpMult(r,q);
+  }
+  // Gold a role gets from one wave at a given CS rate
+  function roleWaveGold(r,type,t,q,lh=1){
+    if(r==='support'){const charges=Math.min(3,waveInterval(t)/20);return charges*18;}
+    const c=comp(type,t);let gold=waveGoldBase(type,t);
+    if(r==='bot'&&q)gold+=2*c.count;
+    return gold*lh;
+  }
+  function avgWave(r,t,q,p,lh=1){const f=cannonFreq(t);return {xp:(1-f)*roleWaveXP(r,'wave',t,q,p)+f*roleWaveXP(r,'cannon',t,q,p),gold:(1-f)*roleWaveGold(r,'wave',t,q,lh)+f*roleWaveGold(r,'cannon',t,q,lh)};}
+  const campXP=(c,l,q)=>c.base*monsterScale(l)+80+(q?10:0);
+  const campGold=(c,q)=>c.gold+(q?10:0);
+  function avgCamp(l,q){let x=0,g=0;CAMP_LIST.forEach(c=>{x+=campXP(c,l,q);g+=campGold(c,q);});return {xp:x/CAMP_LIST.length,gold:g/CAMP_LIST.length};}
+  // farm per second for a role
+  function farmRate(r,t,l,o){
+    if(r==='jungle'){const c=avgCamp(l,o.q);return {xp:c.xp/o.campSec,gold:c.gold/o.campSec};}
+    const w=avgWave(r,t,o.q,o.p,o.lh),I=waveInterval(t);
+    return {xp:w.xp/I,gold:r==='support'?0.9:w.gold/I};
+  }
+  const killGold=e=>300+Math.max(0,e-6)*10;
+  const shareModifier=l=>l<=6?.666:l<=8?.82:.90;
+  function killXP(y,e,participants){
+    const gap=Math.abs(y-e),diff=Math.max(0,gap-1)*.2;
+    const cb=e>y?1+diff:e<y?Math.max(.4,1-diff):1;
+    const base=SOLO[e-1]*cb;
+    return participants===1?base:base*shareModifier(y)/participants;
+  }
+  function respawn(l,t){return RESPAWN[clamp(l,1,18)-1]*(1+Math.min(.5,Math.max(0,t-15)*.02));}
+
+  // Estimated level per role over time (for chart / role table)
+  const LEVEL_CURVE={};
+  function buildCurves(){
+    ROLE_KEYS.forEach(r=>{
+      const arr=[];let cum=0,lvl=1;const dt=5;
+      for(let s=0;s<=60*60;s+=dt){
+        const t=s/60;
+        if(r==='jungle'){if(t>=1.5){const c=avgCamp(lvl,false);cum+=c.xp/32*dt*.85;}}
+        else if(t>=55/60){const w=avgWave(r,t,false,true,1);cum+=w.xp/waveInterval(t)*dt*.85;}
+        while(lvl<18&&cum>=needed(lvl)){cum-=needed(lvl);lvl++;}
+        arr.push(lvl);
+      }
+      LEVEL_CURVE[r]=arr;
+    });
+  }
+  const estLevel=(r,t)=>LEVEL_CURVE[r][clamp(Math.round(t*60/5),0,LEVEL_CURVE[r].length-1)];
+
+  // Core roam model
+  function roamModel(r,t,y,e,o){
+    const rate=farmRate(r,t,y,o),I=waveInterval(t),ws=WAVE_STATES[o.wave];
+    let lost={gold:0,xp:0,waves:0};
+    if(r==='jungle'){const f=.5;lost.gold=rate.gold*o.duration*f;lost.xp=rate.xp*o.duration*f;lost.waves=o.duration/o.campSec;} // camps wait; only delayed respawns are lost
+    else{
+      const waves=Math.max(0,o.duration-ws.free*I)/I+ws.extra;
+      const w=avgWave(r,t,o.q,o.p,o.lh);
+      lost.waves=waves;lost.xp=waves*w.xp;
+      lost.gold=r==='support'?Math.max(0,o.duration-60)/20*18:waves*w.gold;
+    }
+    const others=o.allies,participants=others+1;
+    const xpTake=killXP(y,e,participants)*xpMult(r,o.q);
+    const kg=killGold(e)+(r==='bot'&&o.q?50:0);
+    const assistCredited=Math.max(1,others); // killer excluded, you + other allies
+    const ag=killGold(e)*.5/assistCredited+(r==='bot'&&o.q?50:0);
+    const takeGold=o.credit*kg+(1-o.credit)*ag+o.bonus;
+    const deathSec=respawn(y,t)+25+ROLES[r].walk*0; // walk folded into 25s
+    const dRate=r==='support'?{gold:0.9*0.5,xp:rate.xp}:rate;
+    const death={gold:dRate.gold*deathSec,xp:dRate.xp*deathSec,sec:deathSec};
+    const w=o.w;
+    const V=(g,x)=>g+w*x;
+    const farmV=V(lost.gold,lost.xp),takeV=V(takeGold,xpTake),deathV=V(death.gold,death.xp);
+    const gain={gold:o.kill*takeGold,xp:o.kill*xpTake};
+    const dcost={gold:o.death*death.gold,xp:o.death*death.xp};
+    const plateLoss=o.plates*plateValue(o.riskTier,t);
+    const adcGain=r==='support'&&o.p?(avgWave('bot',t,false,false).xp-avgWave('bot',t,false,true).xp)*lost.waves:0;
+    const allyTake=(1-o.credit)*killGold(e)+o.credit*(others>0?killGold(e)*.5:0)+w*xpTake*others;
+    const T={take:takeV+allyTake,death:deathV+killGold(y),farm:farmV+plateLoss-w*adcGain};
+    const selfNet=o.kill*takeV-o.death*deathV-farmV,selfBE=takeV>0?(farmV+o.death*deathV)/takeV:Infinity;
+    const teamNet=o.kill*T.take-o.death*T.death-T.farm,teamBE=T.take>0?Math.max(0,T.farm+o.death*T.death)/T.take:Infinity;
+    const team=o.mode==='team';
+    const net=team?teamNet:selfNet,breakEven=team?teamBE:selfBE,cost=team?T.farm:farmV;
+    const teamSwing=o.kill*(killGold(e)*1.5)-o.death*killGold(y)-plateLoss-lost.gold;
+    return {rate,lost,xpTake,kg,ag,takeGold,death,gain,dcost,farmV,takeV,deathV,net,breakEven,selfNet,selfBE,teamNet,teamBE,cost,adcGain,T,teamSwing,plateLoss,I};
+  }
+  function roamOpts(overrides={}){
+    return Object.assign({
+      duration:+$('duration').value,wave:$('wave-state').value,kill:+$('kill-chance').value/100,credit:+$('kill-credit').value/100,
+      death:+$('death-chance').value/100,allies:+$('allies').value,plates:+$('plates-lost').value,riskTier:$('risk-tier').value,lh:+$('lh').value/100,
+      w:+$('xp-weight').value,mode:$('mode').value,bonus:Math.max(0,+$('bonus').value||0),campSec:+$('camp-speed').value,q:quest(),p:partner()
+    },overrides);
+  }
+
+  // ---------- UI: roles ----------
+  $('role-bar').innerHTML=ROLE_KEYS.map(k=>`<button type="button" class="role-btn" role="tab" data-role="${k}" aria-selected="false"><span class="r-ico">${ROLES[k].icon}</span><span><strong>${ROLES[k].name}</strong><small>${ROLES[k].tag}</small></span></button>`).join('');
+  for(let l=1;l<=18;l++){you.add(new Option(`Level ${l}`,String(l)));enemy.add(new Option(`Level ${l}`,String(l)));}
+  you.value='6';enemy.value='6';
+
+  function applyRoleDefaults(){
+    const d=ROLES[role].roam;
+    $('duration').value=d.duration;$('kill-chance').value=d.kill;$('kill-credit').value=d.credit;$('death-chance').value=d.death;$('allies').value=String(d.allies);
+    $('plate-sharers').value=ROLES[role].duo?'2':'1';
+  }
+  function setRole(r,fromUser=true){
+    role=r;
+    document.querySelectorAll('.role-btn').forEach(b=>{const a=b.dataset.role===r;b.classList.toggle('active',a);b.setAttribute('aria-selected',String(a));});
+    if(fromUser)applyRoleDefaults();
+    render();
+  }
+
+  function refreshAssistGoldOptions(){
+    const s=$('gold-assisters'),max=otherPlayerCount(),prev=+s.value||1;s.replaceChildren();
+    for(let c=1;c<=max;c++)s.add(new Option(c===1?'1 — only you have an assist':`${c} — you + ${c-1} other ${c===2?'assister':'assisters'}`,String(c)));
+    s.value=String(Math.min(max,prev));
+  }
+
+  function calculate(y,e,t,action){
+    const q=quest(),p=partner(),R=ROLES[role],mult=xpMult(role,q),botQ=role==='bot'&&q;
+    if(action==='solo'){const gold=killGold(e)+(botQ?50:0);return {xp:killXP(y,e,1)*mult,gold,description:`${R.name}: solo kill on a level ${e} opponent${y===e?' (equal level)':''}. No XP sharing.`,detail:'Champion takedown reward.',goldDetail:`Normal kill reward: ${killGold(e)}g at victim level ${e}${botQ?' + 50g bot quest takedown bonus':''}. Excludes First Blood and bounties.`};}
+    if(action==='assist'){
+      const others=otherPlayerCount(),parts=others+1,cred=goldAssisters(),pool=killGold(e)*.5,gold=pool/cred+(botQ?50:0);
+      return {xp:killXP(y,e,parts)*mult,gold,description:`${R.name}: you assisted a kill on a level ${e} opponent. You + ${others} other ${others===1?'player':'players'} (${parts} total) share the XP equally.`,detail:`Shared kill XP pool: ${Math.round(shareModifier(y)*1000)/10}% of solo-kill XP, divided among ${parts} champions.`,goldDetail:`Assist gold: ${nXP(pool)}g pool ÷ ${cred} credited ${cred===1?'assister':'assisters'} = ${nXP(pool/cred)}g${botQ?' + 50g bot quest bonus':''}. The killer separately gets ${killGold(e)}g.`};
+    }
+    if(action==='plate'){
+      const tier=$('plate-tier').value,T=TURRETS[tier],i=plateIdx(),sh=+$('plate-sharers').value,first=i===4&&$('first-turret').checked;
+      const pg=plateValue(tier,t),total=pg+(first?300:0),hp=plateHP(tier,i);
+      const decayTxt=T.decay?`${pg}g at ${toClock(t)} (120g, −10g/min from 11:00, min 80g)`:`${pg}g (600g over 5 plates, no time decay)`;
+      return {xp:0,gold:total/sh,description:`${R.name}: plate ${i+1}/5 on the ${T.name}${i===4?' — this destroys the turret':''}. Needs ${g0(hp)} damage (${Math.round(plateHPpct(i)*100)}% of its HP).`,detail:`Plates give no XP. Plate ${i+1} is worth ${g0(pg/hp*1000)}g per 1,000 turret damage; plate 1 is ${fmt(plateHPpct(4)/plateHPpct(0),0)}× more damage-efficient than plate 5.`,goldDetail:`Plate worth ${decayTxt}${first?' + 300g first-turret bonus':''}${sh>1?`, split ${sh} ways → ${g0(total/sh)}g each`:''}. Outer plates no longer fall at 14:00 (patch 26.1).`};
+    }
+    if(action==='minute'){
+      const o={q,p,lh:1,campSec:30},r=farmRate(role,t,y,o);
+      return {xp:r.xp*60,gold:r.gold*60,description:role==='jungle'?`Jungle: one minute of clearing at ~30s per camp (level ${y} monsters).`:`${R.name}: one minute of laning at ${toClock(t)} — ${fmt(60/waveInterval(t),2)} waves, ${Math.round(cannonFreq(t)*100)}% cannon waves.`,detail:role==='support'?'Support XP share of waves; gold from Atlas charges (1 per 20s).':'Average of cannon and non-cannon waves at this time.',goldDetail:role==='support'?`World Atlas: 3 charges/min × 18g = 54g/min from executes, plus ~3g/10s item income (not counted). The ADC keeps the minion gold.`:`${g0(r.gold*60)}g per minute with perfect last-hits${role==='bot'&&q?' incl. +2g/minion quest bonus':''}.`};
+    }
+    const type=action, c=comp(type,t), xp=roleWaveXP(role,type,t,q,p), gold=roleWaveGold(role,type,t,q,1);
+    let detail,goldDetail;
+    if(role==='jungle'){const f=jungleFactor(t);detail=`${nXP(waveXPBase(type,t))} base XP × ${Math.round(f*1000)/10}% jungle minion XP = ${nXP(xp)} XP.`;goldDetail=`${g0(gold)}g from last-hitting all ${c.detail} minions. The jungle XP penalty doesn't reduce gold.`;}
+    else if(role==='support'){detail=`${nXP(waveXPBase(type,t))} base XP${p?' × 65% shared with your ADC':''} = ${nXP(xp)} XP.`;goldDetail=`World Atlas: ~${fmt(Math.min(3,waveInterval(t)/20),1)} charge(s) per wave × 18g = ${g0(gold)}g. Your ADC still gets each executed minion's gold. Last-hitting more than 6 minions/min (÷ support items) cuts minion gold by 50–80%.`;}
+    else{detail=`${nXP(waveXPBase(type,t))} base XP${role==='bot'&&p?' × 65% shared with support':''}${mult>1?' × 112.5% top quest':''} = ${nXP(xp)} XP.`;goldDetail=`${g0(gold)}g from last-hitting all ${c.detail} minions${role==='bot'&&q?' incl. +2g/minion bot quest':''}.`;}
+    return {xp,gold,description:`${R.name}: ${type==='wave'?'non-cannon':'cannon'} wave (${c.detail}) at ${toClock(t)}.`,detail,goldDetail};
+  }
+
+  function displayValue(xp,l){
+    if(displayMode==='xp')return nXP(xp);
+    if(l===18)return displayMode==='pct'?'—':`${nXP(xp)} (—)`;
+    const pc=xp/needed(l)*100;return displayMode==='pct'?`${fmt(pc,1)}%`:`${nXP(xp)} (${fmt(pc,1)}%)`;
+  }
+  const ratio=(a,b)=>b>0?`${fmt(a/b,2)}×`:'—';
+
+  function renderRewards(){
+    const y=+you.value,e=+enemy.value,t=lastValidTime,action=selectedAction(),R=ROLES[role],q=quest(),p=partner();
+    $('assist-config').hidden=action!=='assist';
+    $('plate-config').hidden=action!=='plate';renderPlateTable(t);
+    const others=otherPlayerCount(),rec=others+1;refreshAssistGoldOptions();const cred=goldAssisters();
+    $('share-total').textContent=`${rec} players sharing this kill's XP`;
+    $('share-party').innerHTML='<div class="share-person is-you">YOU<small>Assist · XP share</small></div><div class="share-person">KILLER<small>XP share</small></div>'+Array.from({length:others-1},(_,i)=>`<div class="share-person">ALLY ${i+1}<small>${i<cred-1?'Assist · XP + gold':'Nearby · XP only'}</small></div>`).join('');
+    $('share-math').textContent=`Your XP = shared kill XP pool ÷ ${rec} eligible players. Your gold = assist-gold pool ÷ ${cred} credited ${cred===1?'assister':'assisters'}.`;
+    $('assist-hint').textContent=`The ${others} other ${others===1?'player includes':'players include'} the killer. Nearby allies can share kill XP without receiving assist gold.`;
+    const res=calculate(y,e,t,action);
+    $('share-result').hidden=action!=='assist';
+    $('share-result-detail').textContent=`You + ${others} ${others===1?'other player':'other players'} = ${rec} XP recipients. You earn ${nXP(res.xp)} XP and ${nXP(res.gold)}g.`;
+    $('earned-xp').textContent=nXP(res.xp);$('earned-gold').textContent=nXP(res.gold);
+    $('gold-detail').textContent=res.goldDetail;$('calc-description').textContent=res.description;
+    $('role-label-out').textContent='· '+R.name;
+    const cap=y===18&&!(role==='top'&&q);
+    const need=y===18?1980:needed(y); // 18→19 only reachable by top with quest (estimated)
+    $('level-pct').textContent=cap?'Level cap':`${fmt(res.xp/need*100,1)}%`;
+    $('progress-fill').style.width=cap?'0%':`${Math.min(100,100*res.xp/need)}%`;
+    $('progress').setAttribute('aria-valuenow',cap?'0':String(Math.min(100,Math.round(100*res.xp/need))));
+    $('level-note').textContent=cap?'Level 18 is the cap (top lane quest raises it to 20).':`${nXP(res.xp)} / ${g0(need)} XP needed for level ${y} → ${y+1}${y===18?' (estimated, top quest)':''}.`;
+    // equivalents
+    let refs;
+    if(role==='jungle'){
+      $('equiv-title').textContent="That's equivalent to";
+      refs=[{group:'Full camp clears'},...CAMP_LIST.map(c=>({icon:c.icon,color:c.color,name:c.name,note:`1 clear ≈ ${nXP(campXP(c,y,q))} XP · ${campGold(c,q)} gold`,xp:campXP(c,y,q),gold:campGold(c,q)}))];
+    }else{
+      $('equiv-title').textContent=`That's equivalent to (as ${R.name})`;
+      const wx=roleWaveXP(role,'wave',t,q,p),wg=roleWaveGold(role,'wave',t,q,1),cx=roleWaveXP(role,'cannon',t,q,p),cg=roleWaveGold(role,'cannon',t,q,1);
+      const fr=farmRate(role,t,y,{q,p,lh:1,campSec:30}),mult=xpMult(role,q),bq=role==='bot'&&q?50:0;
+      refs=[
+        {group:'Lane farm'},
+        {icon:'Ⅲ',color:'#aab2c5',name:'Non-cannon wave',note:`${nXP(wx)} XP · ${g0(wg)} gold`,xp:wx,gold:wg},
+        {icon:'◈',color:'#f6d585',name:'Cannon wave',note:`${nXP(cx)} XP · ${g0(cg)} gold`,xp:cx,gold:cg},
+        {icon:'⏱',color:'#33e0c0',name:'1 minute of laning',note:`${nXP(fr.xp*60)} XP · ${g0(fr.gold*60)} gold`,xp:fr.xp*60,gold:fr.gold*60},
+        {group:'Kill'},
+        {icon:'⚔',color:'#f0576b',name:`Solo kill (level ${e} victim)`,note:`${nXP(killXP(y,e,1)*mult)} XP · ${killGold(e)+bq} gold`,xp:killXP(y,e,1)*mult,gold:killGold(e)+bq}
+      ];
+    }
+    // single turret plates (unshared), one per tier
+    refs.push({group:'Single turret plate · not shared'});
+    [['outer','Outer plate · T1','#aab2c5'],['inner','Inner plate · T2','#e9b64c'],['inhib','Inhibitor plate · T3','#f0576b']].forEach(([k,n,col])=>{
+      const pg=plateValue(k,t);refs.push({icon:'▣',color:col,name:n,note:`0 XP · ${g0(pg)} gold${TURRETS[k].decay?` at ${toClock(t)}`:' (600g ÷ 5)'}`,xp:0,gold:pg});
+    });
+    // assists: you + N assisters + killer share XP; gold pool split between N assisters
+    refs.push({group:`Assist · level ${e} victim`});
+    {const mult=xpMult(role,q),bq=role==='bot'&&q?50:0,pool=killGold(e)*.5;
+      [[1,'Single assist','you + killer'],[2,'Two-person assist','you + 1 assister + killer'],[3,'Three-person assist','you + 2 assisters + killer']].forEach(([n,name,who])=>{
+        const xp=killXP(y,e,n+1)*mult,gold=pool/n+bq;
+        refs.push({icon:'✦',color:'#7ff0dc',name,note:`${who} · ${nXP(xp)} XP · ${g0(gold)} gold`,xp,gold});
+      });}
+    $('camp-list').innerHTML=refs.map(c=>c.group?`<div class="equiv-group">${c.group}</div>`:`<div class="camp"><div class="avatar" style="color:${c.color}" aria-hidden="true">${c.icon}</div><div><div class="camp-name">${c.name}</div><div class="camp-note">${c.note}</div></div><div class="camp-comparisons"><div><small>XP</small><strong class="ratio-xp">${ratio(res.xp,c.xp)}</strong></div><div><small>GOLD</small><strong class="ratio-gold">${ratio(res.gold,c.gold)}</strong></div></div></div>`).join('');
+    $('comparison-footnote').textContent=res.detail+' Gold and XP equivalents are independent comparisons. '+(role==='jungle'?'Camps assume same-level monsters, +80 pet XP'+(q?', +10 XP/+10g quest bonus.':', no quest bonus.'):`Wave values use ${R.name} XP share${R.duo?(p?' (65% with partner)':' (alone in lane: 100%)'):''} and perfect CS.`);
+  }
+
+  function renderPlateTable(t){
+    const tier=$('plate-tier').value,T=TURRETS[tier],sel=plateIdx(),sh=+$('plate-sharers').value,first=$('first-turret').checked;
+    $('first-turret-wrap').style.opacity=sel===4?'1':'.55';
+    let rows='',left=0;
+    for(let i=0;i<5;i++){const pg=plateValue(tier,t)+(i===4&&first?300:0),hp=plateHP(tier,i);if(i>=sel)left+=pg;
+      rows+=`<tr class="${i===sel?'sel':''}"><td>Plate ${i+1}${i===4?' · turret':''}</td><td>${Math.round(PLATE_AT[i]*100)}%</td><td>${g0(hp)}</td><td>${g0(pg)}g</td><td>${g0(pg/sh)}g</td><td class="eff">${g0(pg/hp*1000)}g</td></tr>`;}
+    $('plate-table').innerHTML=`<table><thead><tr><th>Plate</th><th>Breaks at</th><th>HP to break</th><th>Gold</th><th>Your share</th><th>g / 1k dmg</th></tr></thead><tbody>${rows}</tbody></table>`;
+    $('plate-hint').textContent=`${T.name}: ${g0(left)}g left from plate ${sel+1} onward (before splitting). ${T.decay?(t<11?'Outer plates lose 10g per minute from 11:00 — take them early.':t<15?'Outer plate value is decaying (−10g/min until 80g at 15:00).':'Outer plates are at their 80g floor.'):'Inner/inhibitor plate split assumed even (Riot lists 600g total).'}`;
+  }
+  function renderRoleUI(){
+    const R=ROLES[role];
+    $('quest-title').textContent=R.quest.title;$('quest-sub').textContent=R.quest.sub;
+    $('partner-wrap').hidden=!R.duo;
+    $('partner-sub').textContent=role==='support'?'You and your ADC split lane-minion XP: 65% each. Leaving lane gives your ADC 100%.':'You and your support split lane-minion XP: 65% each instead of 100% (patch 26.1 share table).';
+    $('assume-hint').textContent=role==='support'?'Support wave gold = World Atlas executes. XP assumes only you + ADC nearby.':role==='jungle'?'Wave XP uses the jungle-item minion penalty (30% → 100% by 20:00).':'Wave gold assumes you last-hit every minion. XP assumes no extra nearby allies.';
+    $('wave-state-wrap').hidden=role==='jungle';$('camp-speed-wrap').hidden=role!=='jungle';
+    $('duration-hint').textContent=role==='jungle'?'Pathing to the lane + gank + reset.':role==='support'?'Atlas charges keep stacking for 60s — short roams cost little gold.':'Walk there + fight + walk back. Measure it on the travel map below (section 06).';
+    const t=lastValidTime,q=quest(),p=partner(),w=avgWave(role,t,q,p,1);
+    const chips=role==='jungle'?[
+      ['Camp XP (avg)',nXP(avgCamp(+you.value,q).xp)],['Lane minion XP',Math.round(jungleFactor(t)*100)+'%'],['Wave interval',waveInterval(t)+'s']
+    ]:[
+      ['Minion XP share',Math.round(laneXPShare(role,p)*100)+'%'],['XP / avg wave',nXP(w.xp)],['Gold / avg wave',g0(w.gold)+'g'],['Wave interval',waveInterval(t)+'s'],['Cannon waves',Math.round(cannonFreq(t)*100)+'%'],['Plate',plateGold(t)+'g']
+    ];
+    $('role-strip').innerHTML=chips.map(([a,b])=>`<span class="role-chip">${a} <b>${b}</b></span>`).join('');
+  }
+
+  function renderRoam(){
+    const y=+you.value,e=+enemy.value,t=lastValidTime,o=roamOpts(),m=roamModel(role,t,y,e,o),R=ROLES[role];
+    $('v-duration').textContent=o.duration+'s';$('v-kill').textContent=Math.round(o.kill*100)+'%';$('v-credit').textContent=Math.round(o.credit*100)+'%';$('v-death').textContent=Math.round(o.death*100)+'%';$('v-lh').textContent=Math.round(o.lh*100)+'%';$('v-camp').textContent=o.campSec+'s';
+    const tol=Math.max(25,.15*m.cost);
+    const call=m.net>tol?'ROAM':m.net<-tol?'FARM':'COIN FLIP';
+    const v=$('verdict');v.className='verdict'+(call==='FARM'?' farm':call==='COIN FLIP'?' flip':'');
+    $('verdict-call').textContent=call;
+    $('verdict-label').textContent=`${R.name} · ${toClock(t)} · level ${y} vs ${e}`;
+    $('verdict-text').textContent=`Expected net ${m.net>=0?'+':''}${g0(m.net)} ${o.mode==='team'?'team':'personal'} value (gold + XP × ${o.w}). Personal break-even ${m.selfBE>1?'>100':Math.round(m.selfBE*100)}% · team break-even ${m.teamBE>1?'>100':Math.round(m.teamBE*100)}%.`;
+    $('ev-farm-g').textContent=g0(m.lost.gold)+'g';$('ev-farm-x').textContent=nXP(m.lost.xp)+' XP';
+    $('ev-farm-n').textContent=role==='jungle'?`≈ ${fmt(m.lost.waves,1)} camps not cleared`:`≈ ${fmt(m.lost.waves,2)} waves lost (${WAVE_STATES[o.wave].label} wave, ${m.I}s interval)`;
+    $('ev-roam-g').textContent='+'+g0(m.gain.gold)+'g';$('ev-roam-x').textContent='+'+nXP(m.gain.xp)+' XP';
+    $('ev-roam-n').textContent=`${Math.round(o.kill*100)}% × (kill ${g0(m.kg)}g / assist ${g0(m.ag)}g, ${nXP(m.xpTake)} XP)`;
+    $('ev-death-g').textContent='−'+g0(m.dcost.gold)+'g';$('ev-death-x').textContent='−'+nXP(m.dcost.xp)+' XP';
+    $('ev-death-n').textContent=`${Math.round(o.death*100)}% × ${Math.round(m.death.sec)}s off map; enemy gets ${killGold(y)}g`;
+    const be=Math.min(1,m.breakEven);
+    $('be-you').textContent=Math.round(o.kill*100)+'%';$('be-val').textContent=m.breakEven>1?'>100%':Math.round(be*100)+'%';
+    $('be-fill').style.width=Math.round(o.kill*100)+'%';$('be-mark').style.left=`calc(${be*100}% - 1px)`;
+    const why=[];
+    if(role!=='jungle'){
+      const crash=roamModel(role,t,y,e,roamOpts({wave:'crash'})),neu=roamModel(role,t,y,e,roamOpts({wave:'neutral'}));
+      const pt=v=>v>1?'>100%':Math.round(v*100)+'%';why.push(`Crashing before you leave changes the break-even from ${pt(neu.breakEven)} (neutral) to ${pt(crash.breakEven)}.`);
+    }
+    const shorter=roamModel(role,t,y,e,roamOpts({duration:Math.max(15,o.duration-15)}));
+    why.push(`Each 15s shaved off the roam saves ≈ ${g0(m.farmV-shorter.farmV)} value. At ${toClock(t)} a wave arrives every ${m.I}s.`);
+    if(role==='support')why.push(`Leaving gives your ADC 100% instead of 65% of wave XP (+${nXP(m.lost.xp*(1/.65-1)*0+avgWave('bot',t,false,false).xp-avgWave('bot',t,false,true).xp)} XP per wave for them). Atlas charges cap at 3, so you lose gold only after ~60s away.`);
+    if(role==='bot')why.push(`ADC farm is the most gold-dense in the game${quest()?' (+2g/minion quest bonus)':''}. Rotate mainly for dragon or after your outer turret falls.`);
+    if(role==='mid')why.push('Mid has the shortest paths to both side lanes and river. Roam right after shoving, or when the enemy mid backs.');
+    if(role==='top')why.push(`Long walks make top roams expensive. A Teleport flank costs only the walk back.${quest()?' With the quest done, Unleashed TP makes flanks cheaper still.':' Finishing the quest first is worth +600 XP and +12.5% XP.'}`);
+    if(role==='jungle')why.push(`Your farm alternative is ~${fmt(60/o.campSec,1)} camps/min (≈${g0(m.rate.gold*60)}g, ${nXP(m.rate.xp*60)} XP per minute). Gank when the lane is pushed toward your laner.`);
+    if(o.plates){const TT=TURRETS[o.riskTier];why.push(`Losing ${o.plates} plate${o.plates>1?'s':''} on your ${TT.name.charAt(0).toLowerCase()+TT.name.slice(1)} gives the enemy ≈${g0(m.plateLoss)}g${o.mode==='team'?' (counted)':' (ignored in personal mode)'}. Early plates fall fastest: plate 1 needs only ${g0(plateHP(o.riskTier,0))} damage, plate 5 needs ${g0(plateHP(o.riskTier,4))}.`);}
+    if(o.mode==='team')why.push(`Team mode: a takedown is worth ${g0(m.takeV)} to you and ≈${g0(m.T.take)} to the team; dying costs the team your farm + ${killGold(y)}g bounty.`);
+    if(m.breakEven>1)why.push('Even a guaranteed takedown would not pay back this roam. Shorten it, crash first, or bring more value (an objective).');
+    $('why').innerHTML=why.map(s=>`<li>${s}</li>`).join('');
+    renderChart(o);renderWaveClock();
+  }
+
+  function renderChart(o){
+    const W=900,H=280,L=46,Rg=14,T=14,B=34,x0=2,x1=40;
+    const X=t=>L+(t-x0)/(x1-x0)*(W-L-Rg),Y=v=>T+(1-Math.min(1,v))*(H-T-B);
+    const series=role==='jungle'?[{key:'gank',color:'#33e0c0',label:'Gank break-even',o:{}}]:[
+      {key:'crash',color:'#33e0c0',label:'Break-even · crashed wave',o:{wave:'crash'}},
+      {key:'neutral',color:'#4b9bff',label:'Break-even · neutral wave',o:{wave:'neutral'}},
+      {key:'losing',color:'#f0576b',label:'Break-even · wave pushing to you',o:{wave:'losing'}}];
+    let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Break-even takedown chance by game time for ${ROLES[role].name}">`;
+    [0,.25,.5,.75,1].forEach(v=>{svg+=`<line x1="${L}" x2="${W-Rg}" y1="${Y(v)}" y2="${Y(v)}" stroke="#262d3d" stroke-width="1"/><text x="${L-8}" y="${Y(v)+4}" fill="#aab2c5" font-size="11" text-anchor="end">${v*100}%</text>`;});
+    for(let m=5;m<=40;m+=5)svg+=`<text x="${X(m)}" y="${H-12}" fill="#aab2c5" font-size="11" text-anchor="middle">${m}m</text>`;
+    [[14,'14:00 · 25s waves'],[25,'25:00 · all cannons'],[30,'30:00 · 20s waves']].forEach(([m,l])=>{svg+=`<line x1="${X(m)}" x2="${X(m)}" y1="${T}" y2="${H-B}" stroke="#3d475f" stroke-dasharray="3 4"/><text x="${X(m)+4}" y="${T+11}" fill="#6f7a92" font-size="10">${l}</text>`;});
+    // user's chance line + shaded roam zone for the active wave state
+    const active=role==='jungle'?series[0]:series.find(s=>s.key===o.wave);
+    const pts=[];for(let t=x0;t<=x1+1e-9;t+=.25){const l=estLevel(role,t);pts.push([t,roamModel(role,t,l,l,roamOpts(Object.assign({},active.o))).breakEven]);}
+    let zone='';pts.forEach(([t,v],i)=>{if(i&&o.kill>v&&o.kill>pts[i-1][1])zone+=`<rect x="${X(pts[i-1][0])}" y="${T}" width="${X(t)-X(pts[i-1][0])+.5}" height="${H-T-B}" fill="#33e0c0" opacity=".08"/>`;});
+    svg+=zone;
+    series.forEach(s=>{let d='';for(let t=x0;t<=x1+1e-9;t+=.25){const l=estLevel(role,t);const v=roamModel(role,t,l,l,roamOpts(s.o)).breakEven;d+=(d?'L':'M')+X(t).toFixed(1)+','+Y(v).toFixed(1);}
+      svg+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s===active?3:1.6}" opacity="${s===active?1:.7}"/>`;});
+    svg+=`<line x1="${L}" x2="${W-Rg}" y1="${Y(o.kill)}" y2="${Y(o.kill)}" stroke="#e9b64c" stroke-width="2" stroke-dasharray="7 5"/><text x="${W-Rg-4}" y="${Y(o.kill)-6}" fill="#e9b64c" font-size="11" text-anchor="end">your takedown chance ${Math.round(o.kill*100)}%</text>`;
+    const tn=clamp(lastValidTime,x0,x1);svg+=`<line x1="${X(tn)}" x2="${X(tn)}" y1="${T}" y2="${H-B}" stroke="#e8ebf2" stroke-width="1.5"/><text x="${X(tn)+4}" y="${H-B-6}" fill="#e8ebf2" font-size="10">now ${toClock(lastValidTime)}</text>`;
+    svg+='</svg>';$('chart').innerHTML=svg;
+    $('chart-legend').innerHTML=series.map(s=>`<span><i class="sw" style="background:${s.color}"></i>${s.label}</span>`).join('')+'<span><i class="sw" style="background:#e9b64c"></i>Your takedown chance</span><span><i class="sw" style="background:#33e0c0;opacity:.35;height:10px"></i>Roam pays off (current wave state)</span>';
+  }
+
+  function waveList(){const list=[];let t=.5,n=1,since14=0;
+    while(t<=62){let cannon;if(t<14)cannon=n%3===0;else if(t<25){since14++;cannon=since14%2===1;}else cannon=true;
+      list.push({n,t,cannon});t+=waveInterval(t)/60;n++;}return list;}
+  const WAVES=waveList();
+  function renderWaveClock(){
+    if(role==='jungle'){$('wave-clock').innerHTML=WAVES.filter(w=>w.t>=lastValidTime-.01).slice(0,8).map(w=>`<div class="wv${w.cannon?' cn':''}"><b>${toClock(w.t)}</b>wave ${w.n}${w.cannon?' · cannon':''}</div>`).join('')+'<div class="wv go"><b>Tip</b>gank lanes that are pushed toward your ally</div>';return;}
+    const next=WAVES.filter(w=>w.t>=lastValidTime-.01).slice(0,8);const firstC=next.find(w=>w.cannon);
+    $('wave-clock').innerHTML=next.map(w=>`<div class="wv${w.cannon?' cn':''}${w===firstC?' go':''}"><b>${toClock(w.t)}</b>wave ${w.n}${w.cannon?' · cannon':''}${w===firstC?'<br>shove → roam':''}</div>`).join('');
+  }
+
+  function renderRoleTable(){
+    const t=lastValidTime;let rows='';const pb=[];
+    ROLE_KEYS.forEach(r=>{
+      const R=ROLES[r],l=estLevel(r,t),d=R.roam;
+      const o=roamOpts({wave:'crash',duration:d.duration,kill:d.kill/100,credit:d.credit/100,death:d.death/100,allies:d.allies,plates:0,bonus:0,q:false,p:true,campSec:30,lh:.85});
+      const m=roamModel(r,t,l,l,o),w=r==='jungle'?avgCamp(l,false):avgWave(r,t,false,true,.85),fr=farmRate(r,t,l,o);
+      const be=m.breakEven,tag=be<.3?'<span class="tag roam">ROAM-FRIENDLY</span>':be<.55?'<span class="tag sit">SITUATIONAL</span>':'<span class="tag farm">FARM FIRST</span>';
+      rows+=`<tr data-role="${r}" class="${r===role?'selected':''}" tabindex="0"><td><strong>${R.name}</strong></td><td>${l}</td><td>${nXP(w.xp)}${r==='jungle'?' /camp':''}</td><td>${g0(w.gold)}g${r==='jungle'?' /camp':''}</td><td>${g0(fr.gold*60)}g · ${g0(fr.xp*60)} XP</td><td>${d.duration}s · ${d.kill}% odds</td><td>${g0(m.lost.gold)}g · ${g0(m.lost.xp)} XP</td><td>${g0(m.takeV)}</td><td>${be>1?'>100':Math.round(be*100)}%</td><td>${tag}</td></tr>`;
+      pb.push({r,m,l});
+    });
+    $('role-body').innerHTML=rows;
+    const T={
+      top:['Farm by default: lane points count double for the quest, and finishing it gives <b>+600 XP, +12.5% XP and a level 20 cap</b>.','Roam only after crashing a <b>cannon wave</b>, or flank with Teleport into bot or dragon fights.','From 14:00 waves come every 25s. Long walks then cost more than a wave, so prefer side-lane pressure.'],
+      jungle:['Gank lanes <b>pushed toward your laner</b>, where the enemy has no escape (Flash down, low HP).','Otherwise full clear: 35 camps completes the quest for <b>+10 XP / +10g per large monster</b>.','Lane minions give you only 30% → 100% XP until 20:00, so don’t take waves early.'],
+      mid:['The <b>best roaming role</b>: shortest paths to both sides and river.','Roam right after shoving, ideally a cannon wave, at level 2/3/6 spikes, or when the enemy mid recalls.','Quest: takedowns give 25 points and cut the empowered-recall cooldown by 1 min, so roams that work also reset faster.'],
+      bot:['<b>Farm first</b>: bot quest gives +2g per minion and +50g per takedown for the whole game.','Rotate for dragon, or move mid after your outer turret falls.','When your support roams you get <b>100% of wave XP instead of 65%</b>. Play safe and farm through it.'],
+      support:['<b>Cheapest roam in the game</b>: Atlas charges stack to 3 (60s), and your ADC gets 100% of wave XP while you’re gone.','Leave when your ADC can farm safely (wave crashed, or after both bot laners reset). Ward river on the way.','Risk: your ADC is alone vs 2. Put that in the “plates you expect to lose” input.']
+    };
+    $('playbooks').innerHTML=pb.map(({r,m,l})=>`<div class="pb${r===role?' active':''}"><h3><span>${ROLES[r].icon}</span>${ROLES[r].name}</h3><p class="now">Now (${toClock(t)}, ~lvl ${l}): a ${ROLES[r].roam.duration}s roam costs ≈ ${g0(m.lost.gold)}g + ${g0(m.lost.xp)} XP; break-even ${m.breakEven>1?'>100':Math.round(m.breakEven*100)}%.</p><ul>${T[r].map(s=>`<li>${s}</li>`).join('')}</ul><div class="q">${ROLES[r].quest.sub}</div></div>`).join('');
+  }
+
+  function renderTable(){
+    const q=quest(),p=partner(),t=lastValidTime,mult=xpMult(role,q);
+    const cols=role==='jungle'?Array.from({length:11},(_,i)=>i*2):[2,5,8,11,14,17,20,25,30,35];
+    const third=role==='jungle'?'Gromp':'1 min laning';
+    $('table-head').innerHTML=['Level','XP to next','Solo kill','Assist · +1 other','Assist · +2 others','Assist · +3 others','Assist · +4 others',`Wave @${toClock(t)}`,`Cannon @${toClock(t)}`,third,...cols.map(x=>role==='jungle'?`${x}m JG wave`:`${x}m avg wave`)].map((h,i)=>`<th scope="col" class="${i===10?'sep':''}">${h}</th>`).join('');
+    $('table-title').textContent=`Full XP comparison table · ${ROLES[role].name}`;
+    $('table-tip').innerHTML=role==='jungle'?'<b>Time columns:</b> fixed six-minion wave (279 base XP) × jungle minion XP factor. Gromp assumes a same-level camp.':`<b>Time columns:</b> ${ROLES[role].name} XP per average wave (cannon frequency and composition at that minute)${ROLES[role].duo?(p?', 65% shared':', alone in lane'):''}${mult>1?', +12.5% top quest':''}.`;
+    let html='';
+    for(let l=1;l<=18;l++){
+      const reward=SOLO[l-1]*mult,shared=Array.from({length:4},(_,i)=>reward*shareModifier(l)/(i+2));
+      const thirdV=role==='jungle'?campXP(CAMP_LIST[0],l,q):farmRate(role,t,l,{q,p,lh:1,campSec:30}).xp*60;
+      const timeV=cols.map(m=>role==='jungle'?279*jungleFactor(m):avgWave(role,m,q,p).xp);
+      const xps=[reward,...shared,roleWaveXP(role,'wave',t,q,p),roleWaveXP(role,'cannon',t,q,p),thirdV,...timeV];
+      html+=`<tr data-level="${l}" tabindex="0" title="Set your level to ${l}" class="${l===+you.value?'selected':''}"><td>${l}</td><td>${l===18?'MAX':g0(needed(l))}</td>${xps.map((xp,i)=>`<td class="${i===6?'cannon':i===7?'gromp':i===8?'sep':''}">${displayValue(xp,l)}</td>`).join('')}</tr>`;
+    }
+    $('table-body').innerHTML=html;
+  }
+
+  function render(){
+    renderRoleUI();renderRewards();renderRoam();renderRoleTable();renderTable();
+    document.querySelectorAll('.presets button').forEach(b=>b.classList.toggle('active',toMinutes(b.dataset.time)===lastValidTime));
+  }
+
+  // ---------- events ----------
+  $('role-bar').addEventListener('click',e=>{const b=e.target.closest('.role-btn');if(b)setRole(b.dataset.role);});
+  $('role-body').addEventListener('click',e=>{const tr=e.target.closest('tr[data-role]');if(tr){setRole(tr.dataset.role);document.querySelector('.role-bar').scrollIntoView({behavior:'smooth',block:'start'});}});
+  $('role-body').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const tr=e.target.closest('tr[data-role]');if(tr){e.preventDefault();setRole(tr.dataset.role);}}});
+  you.addEventListener('change',()=>{if(!enemyEdited)enemy.value=you.value;render();});
+  enemy.addEventListener('change',()=>{enemyEdited=true;render();});
+  document.querySelectorAll('input[name="action"],input[name="share-count"],input[name="plate-idx"]').forEach(x=>x.addEventListener('change',render));
+  ['plate-tier','plate-sharers','first-turret','risk-tier','mode','gold-assisters','quest-complete','partner','wave-state','allies','plates-lost','xp-weight'].forEach(id=>$(id).addEventListener('change',render));
+  ['duration','kill-chance','kill-credit','death-chance','lh','bonus','camp-speed'].forEach(id=>$(id).addEventListener('input',()=>{renderRoam();renderRoleTable();}));
+  timeInput.addEventListener('input',()=>{const n=toMinutes(timeInput.value);if(n!==null){lastValidTime=n;timeInput.removeAttribute('aria-invalid');render();}else timeInput.setAttribute('aria-invalid','true');});
+  timeInput.addEventListener('blur',()=>{const n=toMinutes(timeInput.value);timeInput.value=toClock(n===null?lastValidTime:n);timeInput.removeAttribute('aria-invalid');render();});
+  document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>{timeInput.value=b.dataset.time;lastValidTime=toMinutes(b.dataset.time);render();}));
+  document.querySelectorAll('.view-switch button').forEach(b=>b.addEventListener('click',()=>{displayMode=b.dataset.mode;document.querySelectorAll('.view-switch button').forEach(x=>{const a=x===b;x.classList.toggle('active',a);x.setAttribute('aria-pressed',String(a));});renderTable();}));
+  function selectTableLevel(l){you.value=String(l);if(!enemyEdited)enemy.value=String(l);render();document.querySelector('.workspace').scrollIntoView({behavior:'smooth',block:'start'});}
+  $('table-body').addEventListener('click',e=>{const tr=e.target.closest('tr[data-level]');if(tr)selectTableLevel(+tr.dataset.level);});
+  $('table-body').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const tr=e.target.closest('tr[data-level]');if(tr){e.preventDefault();selectTableLevel(+tr.dataset.level);}}});
+  $('reset').addEventListener('click',()=>{you.value='6';enemy.value='6';enemyEdited=false;timeInput.value='08:00';lastValidTime=8;document.querySelector('input[name="share-count"][value="1"]').checked=true;$('gold-assisters').value='1';$('quest-complete').checked=false;$('partner').checked=true;document.querySelector('input[value="solo"]').checked=true;$('wave-state').value='crash';$('plates-lost').value='0';$('risk-tier').value='outer';$('plate-tier').value='outer';$('first-turret').checked=false;document.querySelector('input[name="plate-idx"][value="0"]').checked=true;$('lh').value='85';$('xp-weight').value='1';$('mode').value='team';$('bonus').value='0';$('camp-speed').value='30';applyRoleDefaults();render();});
+
+  buildCurves();
+  setRole('mid');
+})();
+
+</script>
+<script>
+(function(){'use strict';
+  // ================= Travel-time map (schematic Summoner's Rift) =================
+  // Game units: blue base bottom-left (0,0), red base top-right (~14870,14870).
+  const $=id=>document.getElementById(id);
+  const fmt=(n,p=1)=>Number(n).toLocaleString('en-US',{maximumFractionDigits:p});
+  const g0=n=>fmt(Math.round(n),0);
+  const SIZE=14870,CELL=75,N=Math.ceil(SIZE/CELL);
+  const MAP_MIN=-120,MAP_MAX=14870,MAP_SPAN=MAP_MAX-MAP_MIN; // same projection as MatchAnalysis.tsx (Data Dragon map11.png)
+  const M=([x,y])=>[14840-x,14920-y]; // point mirror blue -> red (map is ~point-symmetric)
+  const R={WALL:0,LANE:1,RIVER:2,JUNGLE:3,BASE:4,PIT:5};
+
+  // ---- walkable shapes (hand-built schematic; approximate, not Riot's navmesh) ----
+  const SHAPES=[];
+  const seg=(pts,w,region)=>SHAPES.push({t:'seg',pts,w,region});
+  const circ=(c,r,region)=>SHAPES.push({t:'circ',c,r,region});
+  const poly=(pts,region)=>SHAPES.push({t:'poly',pts,region});
+  // bases
+  const BASE=[[150,150],[4100,150],[4300,1900],[3900,3100],[3100,3900],[1900,4300],[150,4100]];
+  poly(BASE,R.BASE);poly(BASE.map(M),R.BASE);
+  // lanes
+  seg([[1100,3900],[1100,12700],[1900,13700],[11000,13700]],1300,R.LANE);          // top
+  seg([[13740,10950],[13740,2220],[12940,1220],[3900,1220]],1300,R.LANE);          // bot
+  seg([[3500,3500],[11340,11420]],1150,R.LANE);                                     // mid
+  // river (symmetric) + pits
+  seg([[1900,12700],[3200,10700],[4400,9600],[7420,7460],[10440,5320],[11640,4220],[12940,2220]],1200,R.RIVER);
+  circ([5007,10471],700,R.PIT);circ([9866,4414],700,R.PIT);
+  // blue-side jungle corridors (mirrored for red side)
+  const JUNGLE=[
+    [[2400,4200],[3200,5200],[3800,6500]],              // base → wolves
+    [[1700,6600],[2800,6500],[3800,6500]],              // top lane (inner) → wolves
+    [[3800,6500],[4700,6000],[5350,5650]],              // wolves → mid lane
+    [[3800,6500],[3400,7200],[3800,7900]],              // wolves → blue buff
+    [[3800,7900],[2900,8000],[2100,8400]],              // blue buff → gromp
+    [[2100,8400],[1500,9100]],                          // gromp → top lane
+    [[3800,7900],[4300,8700],[4600,9400]],              // blue buff → river (scuttle)
+    [[1600,11100],[2700,10600],[3300,10500]],           // top lane → tri-brush → river
+    [[3800,7900],[5000,8000],[6200,7600],[6700,7300]],  // blue buff → mid/river
+    [[4300,2300],[5500,3000],[6600,3500],[7800,4000]],  // base → red buff
+    [[6300,1900],[6200,2900],[6600,3500]],              // bot lane (inner) → red buff path
+    [[7800,4000],[8300,3300],[8400,2700]],              // red buff → krugs
+    [[8400,2700],[8700,1900],[8800,1500]],              // krugs → bot lane
+    [[7800,4000],[7300,4800],[6950,5400]],              // red buff → raptors
+    [[6950,5400],[6300,5900],[6150,6250]],              // raptors → mid lane
+    [[6950,5400],[7600,6200],[8100,6800]],              // raptors → river
+    [[7800,4000],[9000,4600],[9500,5300]],              // red buff → dragon side river
+    [[11000,1700],[11500,2600],[12000,3000]]            // bot lane → tri-brush → river
+  ];
+  JUNGLE.forEach(p=>{seg(p,600,R.JUNGLE);seg(p.map(M),600,R.JUNGLE);});
+  // camp clearings
+  const CAMPS_BLUE=[['Blue buff',3800,7900],['Gromp',2100,8400],['Wolves',3800,6500],['Red buff',7800,4000],['Raptors',6950,5400],['Krugs',8400,2700]];
+  CAMPS_BLUE.forEach(([,x,y])=>{circ([x,y],420,R.JUNGLE);circ(M([x,y]),420,R.JUNGLE);});
+
+  // ---- key spots (turrets from Riot match-timeline coordinates; camps approximate) ----
+  const SPOTS=[
+    {id:'bf',name:'Blue fountain',p:[500,520],side:'b'},
+    {id:'btop',name:'Blue top outer turret',p:[981,10441],side:'b',tur:1},
+    {id:'bmid',name:'Blue mid outer turret',p:[5846,6396],side:'b',tur:1},
+    {id:'bbot',name:'Blue bot outer turret',p:[10504,1029],side:'b',tur:1},
+    {id:'rtop',name:'Red top outer turret',p:[4318,13875],side:'r',tur:1},
+    {id:'rmid',name:'Red mid outer turret',p:[8955,8510],side:'r',tur:1},
+    {id:'rbot',name:'Red bot outer turret',p:[13866,4505],side:'r',tur:1},
+    {id:'topc',name:'Top lane (corner)',p:[1500,13300],side:'n'},
+    {id:'midc',name:'Mid lane (center)',p:[7420,7460],side:'n'},
+    {id:'botc',name:'Bot lane (corner)',p:[13340,1600],side:'n'},
+    {id:'drag',name:'Dragon pit',p:[9866,4414],side:'n',pit:1},
+    {id:'baron',name:'Baron pit',p:[5007,10471],side:'n',pit:1},
+    {id:'scT',name:'Top scuttle',p:[4400,9600],side:'n'},
+    {id:'scB',name:'Bot scuttle',p:[10440,5320],side:'n'},
+    ...CAMPS_BLUE.map(([n,x,y])=>({id:'b'+n,name:'Blue '+n.toLowerCase(),p:[x,y],side:'b',camp:1})),
+    ...CAMPS_BLUE.map(([n,x,y])=>({id:'r'+n,name:'Red '+n.toLowerCase(),p:M([x,y]),side:'r',camp:1})),
+    {id:'rf',name:'Red fountain',p:M([500,520]),side:'r'}
+  ];
+  const TURRETS_DRAW=[[981,10441,'b'],[1512,6699,'b'],[1169,4287,'b'],[5846,6396,'b'],[5048,4812,'b'],[3651,3696,'b'],[10504,1029,'b'],[6919,1483,'b'],[4281,1253,'b'],[1748,2270,'b'],[2177,1807,'b'],
+    [4318,13875,'r'],[7943,13411,'r'],[10481,13650,'r'],[8955,8510,'r'],[9767,10113,'r'],[11134,11207,'r'],[13866,4505,'r'],[13327,8226,'r'],[13624,10572,'r'],[12611,13084,'r'],[13052,12612,'r']];
+  const ROLE_ROUTE={top:['topc','midc'],jungle:['bBlue buff','topc'],mid:['midc','botc'],bot:['botc','midc'],support:['botc','midc']};
+
+  // ---- rasterize ----
+  function dSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));const qx=ax+t*dx-px,qy=ay+t*dy-py;return Math.sqrt(qx*qx+qy*qy);}
+  function inPoly(px,py,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const [xi,yi]=pts[i],[xj,yj]=pts[j];if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))c=!c;}return c;}
+  const PRIO={[R.BASE]:5,[R.PIT]:4,[R.RIVER]:3,[R.LANE]:2,[R.JUNGLE]:1};
+  function raster(shapes,scale=1){const g=new Uint8Array(N*N);
+    for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x=(i+.5)*CELL,y=(j+.5)*CELL;let best=0;
+      for(const s of shapes){let hit=false;
+        if(s.t==='seg'){for(let k=0;k<s.pts.length-1&&!hit;k++)hit=dSeg(x,y,s.pts[k][0],s.pts[k][1],s.pts[k+1][0],s.pts[k+1][1])<=s.w*scale/2;}
+        else if(s.t==='circ')hit=Math.hypot(x-s.c[0],y-s.c[1])<=s.r*scale;
+        else hit=inPoly(x,y,s.pts);
+        if(hit&&(!best||PRIO[s.region]>PRIO[best]))best=s.region;}
+      g[j*N+i]=best;}
+    return g;}
+  const SCHEM=raster(SHAPES);
+  // Cells that are certainly walkable (narrow lane/river/base cores) — always kept when detecting walls from the minimap
+  const CORE=raster(SHAPES.filter(s=>s.region!==R.JUNGLE),.6);
+  let grid=SCHEM;
+  const idx=(i,j)=>j*N+i;
+  const cellOf=([x,y])=>[Math.min(N-1,Math.max(0,Math.floor(x/CELL))),Math.min(N-1,Math.max(0,Math.floor(y/CELL)))];
+  function snap(p){let [i,j]=cellOf(p);if(grid[idx(i,j)])return idx(i,j);
+    for(let r=1;r<20;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const a=i+di,b=j+dj;if(a>=0&&b>=0&&a<N&&b<N&&grid[idx(a,b)])return idx(a,b);}return idx(i,j);}
+
+  // ---- movement speed ----
+  function softCap(raw){if(raw>490)return raw*.5+230;if(raw>415)return raw*.8+83;if(raw<220)return 110+raw*.5;return raw;}
+  function speeds(){
+    const base=+$('ms-base').value,boots=+$('ms-boots').value,flat=Math.max(0,+$('ms-flat').value||0),pct=+$('ms-pct').value/100,jq=$('ms-jq').checked?.08:0;
+    return {lane:softCap((base+boots+flat)*(1+pct)),jungle:softCap((base+boots+flat)*(1+pct+jq)),raw:(base+boots+flat)*(1+pct)};
+  }
+
+  // ---- Dijkstra (16-neighbour, no corner cutting) ----
+  const NB=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+  let dist=new Float64Array(N*N),prev=new Int32Array(N*N);
+  function dijkstra(src,sp){
+    dist.fill(Infinity);prev.fill(-1);dist[src]=0;
+    const hk=[],hv=[];const push=(k,v)=>{hk.push(k);hv.push(v);let c=hk.length-1;while(c>0){const p=(c-1)>>1;if(hv[p]<=hv[c])break;[hk[p],hk[c]]=[hk[c],hk[p]];[hv[p],hv[c]]=[hv[c],hv[p]];c=p;}};
+    const pop=()=>{const k=hk[0],v=hv[0],lk=hk.pop(),lv=hv.pop();if(hk.length){hk[0]=lk;hv[0]=lv;let c=0;for(;;){const l=2*c+1,r=l+1;let m=c;if(l<hk.length&&hv[l]<hv[m])m=l;if(r<hk.length&&hv[r]<hv[m])m=r;if(m===c)break;[hk[m],hk[c]]=[hk[c],hk[m]];[hv[m],hv[c]]=[hv[c],hv[m]];c=m;}}return [k,v];};
+    push(src,0);
+    while(hk.length){const [u,du]=pop();if(du>dist[u])continue;const ui=u%N,uj=(u/N)|0;
+      for(const [di,dj] of NB){const vi=ui+di,vj=uj+dj;if(vi<0||vj<0||vi>=N||vj>=N)continue;const v=idx(vi,vj);if(!grid[v])continue;
+        if(Math.abs(di)+Math.abs(dj)>=2){ // block corner cutting
+          const sx=Math.sign(di),sy=Math.sign(dj);
+          if(Math.abs(di)===1&&Math.abs(dj)===1){if(!grid[idx(ui+sx,uj)]||!grid[idx(ui,uj+sy)])continue;}
+          else if(Math.abs(di)===2){if(!grid[idx(ui+sx,uj)]||!grid[idx(ui+sx,uj+sy)])continue;}
+          else{if(!grid[idx(ui,uj+sy)]||!grid[idx(ui+sx,uj+sy)])continue;}}
+        const len=Math.hypot(di,dj)*CELL,reg=grid[v],speed=(reg===R.JUNGLE||reg===R.RIVER||reg===R.PIT)?sp.jungle:sp.lane;
+        const nd=du+len/speed;if(nd<dist[v]){dist[v]=nd;prev[v]=u;push(v,nd);}}
+    }
+  }
+  function pathTo(t){const pts=[];let c=t;while(c>=0){pts.push(c);c=prev[c];}return pts.reverse();}
+  const center=c=>[(c%N+.5)*CELL,(((c/N)|0)+.5)*CELL];
+  function pathLength(path){let L=0;for(let k=1;k<path.length;k++){const a=center(path[k-1]),b=center(path[k]);L+=Math.hypot(a[0]-b[0],a[1]-b[1]);}return L;}
+
+  // ---- state & DOM ----
+  let startId='midc',destId='botc',clickMode='start',startCell,destCell,customStart=null,customDest=null,hoverCell=-1,mini=null,cellL=null,cellWater=null,inMap=null;
+  const canvas=$('map-canvas'),ctx=canvas.getContext('2d');
+  const spotById=id=>SPOTS.find(s=>s.id===id);
+  const fillSelect=sel=>{sel.innerHTML=SPOTS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')+'<option value="custom">Custom point (click map)</option>';};
+  fillSelect($('tr-start'));fillSelect($('tr-dest'));
+  $('tr-start').value=startId;$('tr-dest').value=destId;
+
+  const BANDS=[[5,'#33e0c0'],[10,'#46d17f'],[15,'#4b9bff'],[20,'#a072ff'],[30,'#e9b64c'],[45,'#f0576b']];
+  const COLORS={[R.LANE]:[52,57,74],[R.RIVER]:[24,62,86],[R.JUNGLE]:[28,46,40],[R.BASE]:[36,42,58],[R.PIT]:[48,40,72]}; // rgb, matches Riot Analizer surfaces
+  const base=document.createElement('canvas');
+  function sizeCanvas(){const w=canvas.clientWidth||600,dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(w*dpr);canvas.height=Math.round(w*dpr);drawBase();draw();}
+  const S=()=>canvas.width/MAP_SPAN;
+  const toPx=([x,y])=>[(x-MAP_MIN)*S(),(MAP_MAX-y)*S()];
+  const hex=(h,a)=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16),a];
+  const small=document.createElement('canvas');small.width=N;small.height=N;
+  function blit(target,colorOf){const sc=small.getContext('2d'),img=sc.createImageData(N,N),d=img.data;
+    for(let c=0;c<N*N;c++){const col=colorOf(c);if(!col)continue;const i=c%N,j=(c/N)|0,o=((N-1-j)*N+i)*4;d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=col[3];}
+    sc.putImageData(img,0,0);const s=S();target.imageSmoothingEnabled=true;target.drawImage(small,(0-MAP_MIN)*s,(MAP_MAX-N*CELL)*s,N*CELL*s,N*CELL*s);}
+  function drawBase(){
+    base.width=canvas.width;base.height=canvas.height;const b=base.getContext('2d'),s=S();
+    b.fillStyle='#0f121a';b.fillRect(0,0,base.width,base.height);
+    const useMini=mini&&$('tr-src').value==='minimap';
+    if(mini){b.drawImage(mini,0,0,MAP_SPAN*s,MAP_SPAN*s);} // map11.png spans game coords -120..14870 (as in MatchAnalysis.tsx)
+    if(!useMini){b.globalAlpha=mini?.5:1;blit(b,c=>{const r=grid[c];return r?[...COLORS[r],255]:null;});b.globalAlpha=1;}
+    if($('tr-mask').checked){b.globalAlpha=.45;blit(b,c=>(!grid[c]&&(!inMap||inMap[c]))?[230,70,70,255]:null);b.globalAlpha=1;}
+    if(!mini){
+      TURRETS_DRAW.forEach(([x,y,side])=>{const [px,py]=toPx([x,y]);b.fillStyle=side==='b'?'#4b9bff':'#f0576b';b.fillRect(px-4,py-4,8,8);b.strokeStyle='#0f121a';b.strokeRect(px-4,py-4,8,8);});
+      SPOTS.filter(p=>p.camp||p.pit).forEach(p=>{const [px,py]=toPx(p.p);b.beginPath();b.arc(px,py,p.pit?9:5,0,7);b.fillStyle=p.pit?'#a072ff':'#e9b64c';b.globalAlpha=.9;b.fill();b.globalAlpha=1;});
+      b.font=`${Math.max(10,canvas.width/70)}px Inter,system-ui,sans-serif`;b.fillStyle='#e8ebf2';b.textAlign='center';
+      [['Baron',[5007,10471+950]],['Dragon',[9866,4414-950]],['BLUE BASE',[1700,1700]],['RED BASE',[13140,13220]]].forEach(([tx,p])=>{const [px,py]=toPx(p);b.fillText(tx,px,py);});
+    }
+  }
+  // ---- walls from the Riot minimap (Data Dragon map11.png, same source as the project's MatchAnalysis view) ----
+  const status=(msg)=>{$('tr-status').textContent=msg;};
+  function loadMinimap(){
+    const go=v=>{const img=new Image();img.crossOrigin='anonymous';
+      img.onload=()=>{mini=img;analyseMinimap(v);};
+      img.onerror=()=>{status('Could not load the Riot minimap (offline or blocked) — using the hand-drawn schematic.');$('tr-src').value='schematic';$('tr-src').disabled=true;};
+      img.src=`https://ddragon.leagueoflegends.com/cdn/${v}/img/map/map11.png`;};
+    fetch('https://ddragon.leagueoflegends.com/api/versions.json').then(r=>r.json()).then(l=>go(l[0])).catch(()=>go('14.19.1'));
+  }
+  function analyseMinimap(v){
+    const W=mini.naturalWidth,H=mini.naturalHeight,c=document.createElement('canvas');c.width=W;c.height=H;
+    const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(mini,0,0);let d;
+    try{d=x.getImageData(0,0,W,H).data;}catch(e){status(`Riot minimap ${v} shown, but the browser blocked reading its pixels — walls come from the schematic.`);$('tr-src').value='schematic';$('tr-src').disabled=true;sizeCanvas();return;}
+    cellL=new Float32Array(N*N);cellWater=new Uint8Array(N*N);inMap=new Uint8Array(N*N);
+    const hist=new Float64Array(256);
+    for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+      const gx0=i*CELL,gx1=gx0+CELL,gy0=j*CELL,gy1=gy0+CELL;
+      const px0=Math.floor((gx0-MAP_MIN)/MAP_SPAN*W),px1=Math.max(px0+1,Math.ceil((gx1-MAP_MIN)/MAP_SPAN*W));
+      const py0=Math.floor((MAP_MAX-gy1)/MAP_SPAN*H),py1=Math.max(py0+1,Math.ceil((MAP_MAX-gy0)/MAP_SPAN*H));
+      let r=0,g=0,b=0,n=0;
+      for(let py=Math.max(0,py0);py<Math.min(H,py1);py++)for(let px=Math.max(0,px0);px<Math.min(W,px1);px++){const o=(py*W+px)*4;r+=d[o];g+=d[o+1];b+=d[o+2];n++;}
+      const c2=j*N+i;if(!n)continue;r/=n;g/=n;b/=n;
+      const L=.299*r+.587*g+.114*b;cellL[c2]=L;
+      cellWater[c2]=(b>r+18&&(b+g)/2>r+14&&L>30)?1:0;
+      inMap[c2]=(gx1<=SIZE&&gy1<=SIZE)?1:0;
+      if(inMap[c2])hist[Math.min(255,Math.round(L))]++;
+    }
+    // Otsu threshold on cell luminance → default wall/walkable split
+    let total=0,sum=0;for(let k=0;k<256;k++){total+=hist[k];sum+=k*hist[k];}
+    let wB=0,sB=0,best=0,thr=80;for(let k=0;k<256;k++){wB+=hist[k];if(!wB)continue;const wF=total-wB;if(!wF)break;sB+=k*hist[k];const mB=sB/wB,mF=(sum-sB)/wF,between=wB*wF*(mB-mF)*(mB-mF);if(between>best){best=between;thr=k;}}
+    $('tr-thr').value=String(Math.round(thr));autoThr=Math.round(thr);
+    status(`Using Riot minimap ${v}: walls auto-detected (threshold ${autoThr}). Turn on “Show detected walls” to check, and nudge the slider if paths look blocked.`);
+    buildGrid();sizeCanvas();recompute();
+  }
+  let autoThr=null;
+  function buildGrid(){
+    $('v-thr').textContent=(cellL&&$('tr-src').value==='minimap')?($('tr-thr').value+(+$('tr-thr').value===autoThr?' (auto)':'')):'—';
+    if(!cellL||$('tr-src').value!=='minimap'){grid=SCHEM;return;}
+    const thr=+$('tr-thr').value;let g=new Uint8Array(N*N);
+    for(let c=0;c<N*N;c++){if(!inMap[c])continue;
+      if(CORE[c]){g[c]=CORE[c];continue;}
+      if(cellL[c]>=thr||cellWater[c])g[c]=cellWater[c]?R.RIVER:(SCHEM[c]===R.LANE||SCHEM[c]===R.BASE||SCHEM[c]===R.PIT?SCHEM[c]:R.JUNGLE);}
+    // clean-up: fill 1-cell wall specks, drop isolated walkable specks
+    for(let pass=0;pass<2;pass++){const h=g.slice();
+      for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++){const c=j*N+i;let w=0;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++)if((di||dj)&&g[c+dj*N+di])w++;
+        if(!g[c]&&w>=6&&inMap[c])h[c]=SCHEM[c]||R.JUNGLE;else if(g[c]&&!CORE[c]&&w<=1)h[c]=0;}
+      g=h;}
+    // keep only terrain connected to the lanes
+    const seen=new Uint8Array(N*N),q=[];const seed=cellOf([7420,7460]);const s0=idx(seed[0],seed[1]);
+    if(g[s0]){seen[s0]=1;q.push(s0);}
+    while(q.length){const u=q.pop(),ui=u%N,uj=(u/N)|0;for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const vi=ui+di,vj=uj+dj;if(vi<0||vj<0||vi>=N||vj>=N)continue;const v=idx(vi,vj);if(g[v]&&!seen[v]){seen[v]=1;q.push(v);}}}
+    for(let c=0;c<N*N;c++)if(!seen[c])g[c]=0;
+    grid=g;
+  }
+  function bandColor(t){for(const [lim,c] of BANDS)if(t<=lim)return c;return null;}
+  function draw(){
+    if(!canvas.width||!base.width||startCell===undefined)return;const s=S();
+    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(base,0,0);
+    // isochrone bands
+    ctx.globalAlpha=.38;
+    blit(ctx,c=>{const tt=dist[c];if(!isFinite(tt))return null;const col=bandColor(tt);return col?hex(col,255):null;});
+    ctx.globalAlpha=1;
+    // straight line vs path
+    const a=toPx(center(startCell)),bpt=toPx(center(destCell));
+    ctx.setLineDash([3,5]);ctx.strokeStyle='#aab2c5';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...bpt);ctx.stroke();ctx.setLineDash([]);
+    const path=pathTo(destCell);
+    if(isFinite(dist[destCell])){ctx.strokeStyle='#0f121a';ctx.lineWidth=6;ctx.lineJoin='round';ctx.beginPath();path.forEach((c,k)=>{const p=toPx(center(c));k?ctx.lineTo(...p):ctx.moveTo(...p);});ctx.stroke();
+      ctx.strokeStyle='#e8ebf2';ctx.lineWidth=3;ctx.stroke();}
+    const ring=(p,col,label)=>{ctx.beginPath();ctx.arc(p[0],p[1],9,0,7);ctx.fillStyle=col;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#0f121a';ctx.stroke();ctx.fillStyle='#0f121a';ctx.font=`bold 11px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.fillText(label,p[0],p[1]+4);};
+    ring(a,'#33e0c0','A');ring(bpt,'#e9b64c','B');
+    if(hoverCell>=0&&grid[hoverCell]){const hp=toPx(center(hoverCell));ctx.beginPath();ctx.arc(hp[0],hp[1],5,0,7);ctx.strokeStyle='#e8ebf2';ctx.lineWidth=2;ctx.stroke();}
+  }
+
+  function recompute(){
+    const sp=speeds();
+    startCell=snap(startId==='custom'&&customStart?customStart:spotById(startId==='custom'?'midc':startId).p);
+    destCell=snap(destId==='custom'&&customDest?customDest:spotById(destId==='custom'?'botc':destId).p);
+    dijkstra(startCell,sp);
+    renderInfo(sp);draw();
+  }
+  function renderInfo(sp){
+    $('ms-final').textContent=g0(sp.lane);
+    $('ms-final-note').textContent=(sp.raw>415?`soft-capped from ${g0(sp.raw)} · `:'')+(sp.jungle!==sp.lane?`${g0(sp.jungle)} in jungle/river (quest bonus)`:'units per second');
+    $('ms-per').innerHTML=[5,10,20,30].map(t=>`<div class="per"><b>${t}s</b><span>${g0(sp.lane*t)}</span><small>units</small></div>`).join('');
+    const sName=startId==='custom'?'your point A':spotById(startId).name,dName=destId==='custom'?'your point B':spotById(destId).name;
+    const t=dist[destCell],path=pathTo(destCell),L=pathLength(path),a=center(startCell),b=center(destCell),straight=Math.hypot(a[0]-b[0],a[1]-b[1]);
+    const fight=+$('tr-fight').value;$('v-fight').textContent=fight+'s';
+    if(isFinite(t)){
+      const roam=Math.round(2*t+fight);
+      $('tr-result').innerHTML=`<div class="tr-big"><strong>${fmt(t,1)}s</strong><span>${sName} → ${dName}</span></div><p>Path ${g0(L)} units vs ${g0(straight)} straight line: <b>${straight>0?fmt(L/straight,2):'1'}×</b> longer because of walls. A straight line would take ${fmt(straight/sp.lane,1)}s.</p><p>Roam estimate: ${fmt(t,1)}s there + ${fight}s fight + ${fmt(t,1)}s back ≈ <b>${roam}s</b> away from lane.</p>`;
+      $('tr-use').disabled=false;$('tr-use').dataset.sec=String(Math.min(120,Math.max(15,Math.round(roam/5)*5)));
+      $('tr-use').textContent=`Use ${$('tr-use').dataset.sec}s in the roam calculator`;
+    }else{$('tr-result').innerHTML='<p>No walkable path found.</p>';$('tr-use').disabled=true;}
+    const rows=SPOTS.filter(s=>s.id!==startId).map(s=>{const c=snap(s.p),tt=dist[c],cc=center(c),st=Math.hypot(cc[0]-a[0],cc[1]-a[1]);return {s,tt,ratio:st>0?pathLength(pathTo(c))/st:1};}).filter(r=>isFinite(r.tt)).sort((x,y)=>x.tt-y.tt);
+    $('tr-table').innerHTML=`<table><thead><tr><th>From ${sName}</th><th>Time</th><th>Detour</th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.s.id}" class="${r.s.id===destId?'sel':''}"><td><span class="dot ${r.s.side}"></span>${r.s.name}</td><td>${fmt(r.tt,1)}s</td><td>${fmt(r.ratio,2)}×</td></tr>`).join('')}</tbody></table>`;
+    const w10=rows.filter(r=>r.tt<=10).map(r=>r.s.name),w20=rows.filter(r=>r.tt>10&&r.tt<=20).map(r=>r.s.name);
+    $('tr-within').innerHTML=`<p><b>Within 10s</b> of ${sName}: ${w10.length?w10.join(', '):'nothing on the list'}.</p><p><b>10–20s:</b> ${w20.length?w20.join(', '):'nothing on the list'}.</p>`;
+  }
+
+  // ---- events ----
+  ['ms-base','ms-boots','ms-jq'].forEach(id=>$(id).addEventListener('change',recompute));
+  $('tr-src').addEventListener('change',()=>{buildGrid();drawBase();recompute();});
+  $('tr-mask').addEventListener('change',()=>{drawBase();draw();});
+  $('tr-thr').addEventListener('input',()=>{buildGrid();drawBase();recompute();});
+  ['ms-pct','ms-flat'].forEach(id=>$(id).addEventListener('input',()=>{$('v-pct').textContent=$('ms-pct').value+'%';recompute();}));
+  $('tr-fight').addEventListener('input',()=>renderInfo(speeds()));
+  $('tr-start').addEventListener('change',e=>{startId=e.target.value;recompute();});
+  $('tr-dest').addEventListener('change',e=>{destId=e.target.value;recompute();});
+  document.querySelectorAll('#tr-mode button').forEach(b=>b.addEventListener('click',()=>{clickMode=b.dataset.mode;document.querySelectorAll('#tr-mode button').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b));});}));
+  function evtToGame(e){const r=canvas.getBoundingClientRect();const x=MAP_MIN+(e.clientX-r.left)/r.width*MAP_SPAN,y=MAP_MAX-(e.clientY-r.top)/r.height*MAP_SPAN;return [x,y];}
+  canvas.addEventListener('click',e=>{const p=evtToGame(e);
+    if(clickMode==='start'){customStart=p;startId='custom';$('tr-start').value='custom';}else{customDest=p;destId='custom';$('tr-dest').value='custom';}
+    recompute();});
+  canvas.addEventListener('mousemove',e=>{const [i,j]=cellOf(evtToGame(e));hoverCell=idx(i,j);const t=dist[hoverCell];
+    $('tr-hover').textContent=grid[hoverCell]?(isFinite(t)?`Cursor: ${fmt(t,1)}s from A`:'Cursor: unreachable'):'Cursor: wall / not walkable';draw();});
+  canvas.addEventListener('mouseleave',()=>{hoverCell=-1;$('tr-hover').textContent='Hover the map to see the travel time to any point.';draw();});
+  $('tr-table').addEventListener('click',e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;destId=tr.dataset.id;$('tr-dest').value=destId;recompute();});
+  $('tr-use').addEventListener('click',()=>{const d=$('duration');d.value=$('tr-use').dataset.sec;d.dispatchEvent(new Event('input'));$('roam').scrollIntoView({behavior:'smooth',block:'start'});});
+  document.getElementById('role-bar').addEventListener('click',e=>{const b=e.target.closest('.role-btn');if(!b)return;const [s,d]=ROLE_ROUTE[b.dataset.role];startId=s;destId=d;$('tr-start').value=s;$('tr-dest').value=d;recompute();});
+  window.addEventListener('resize',()=>{clearTimeout(window.__trR);window.__trR=setTimeout(sizeCanvas,120);});
+  // initial route by currently active role
+  const active=document.querySelector('.role-btn.active');if(active){[startId,destId]=ROLE_ROUTE[active.dataset.role];$('tr-start').value=startId;$('tr-dest').value=destId;}
+  buildGrid();recompute();sizeCanvas();loadMinimap();
+})();
+
+</script>
+</body>
+</html>

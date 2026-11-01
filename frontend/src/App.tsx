@@ -12,6 +12,7 @@ import { Trends } from './pages/Trends';
 import { Matches } from './pages/Matches';
 import { MatchDetail } from './pages/MatchDetail';
 import { Live } from './pages/Live';
+import { DecisionLab } from './pages/DecisionLab';
 import { Login } from './pages/Login';
 import { AuthProvider, RequireAdmin } from './auth';
 
@@ -25,6 +26,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/tools/decision-lab" element={<DecisionLab />} />
             <Route
               path="/tracked"
               element={

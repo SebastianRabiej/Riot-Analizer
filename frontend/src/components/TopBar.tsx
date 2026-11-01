@@ -75,6 +75,14 @@ export function TopBar() {
         </div>
         )}
 
+        <NavLink
+          to="/tools/decision-lab"
+          className={({ isActive }) => `chip ${isActive ? 'active' : ''}`}
+          title="Decision Lab: roam or farm, and what every action is worth"
+        >
+          🧪 Decision Lab
+        </NavLink>
+
         <div className="auth-slot">
           {isAdmin ? (
             <button type="button" className="chip" onClick={doLogout} title="Sign out of the admin session">
